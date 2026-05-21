@@ -1,0 +1,172 @@
+import { createRoot, type Root } from 'react-dom/client';
+import { Dialog } from './Dialog';
+import { extractTranscript } from '../shared/transcript';
+import type { LLMResponse, RuntimeMessage, TranscriptResult } from '../shared/types';
+import dialogCss from './dialog.css?inline';
+
+const BUTTON_ID = 'insightsnap-trigger';
+const HOST_ID = 'insightsnap-host';
+
+let currentHref = location.href;
+let dialogRoot: Root | null = null;
+let dialogHost: HTMLDivElement | null = null;
+
+function isWatchPage(href: string): boolean {
+  try {
+    const u = new URL(href);
+    return u.pathname === '/watch' && u.searchParams.has('v');
+  } catch {
+    return false;
+  }
+}
+
+function ensureButton() {
+  if (!isWatchPage(location.href)) {
+    document.getElementById(BUTTON_ID)?.remove();
+    return;
+  }
+  if (document.getElementById(BUTTON_ID)) return;
+
+  const anchor =
+    document.querySelector('ytd-watch-metadata #actions') ??
+    document.querySelector('ytd-watch-metadata #top-level-buttons-computed');
+  if (!anchor) return;
+
+  const btn = document.createElement('button');
+  btn.id = BUTTON_ID;
+  btn.type = 'button';
+  btn.title = 'InsightSnap – Video analysieren';
+  btn.textContent = '✨ InsightSnap';
+  Object.assign(btn.style, {
+    marginLeft: '8px',
+    padding: '0 16px',
+    height: '36px',
+    borderRadius: '18px',
+    border: 'none',
+    background: 'rgba(255,255,255,0.1)',
+    color: 'inherit',
+    font: 'inherit',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+  } satisfies Partial<CSSStyleDeclaration>);
+  btn.addEventListener('click', openDialog);
+  anchor.appendChild(btn);
+}
+
+function ensureDialogHost(): { host: HTMLDivElement; shadow: ShadowRoot } {
+  if (dialogHost?.shadowRoot) {
+    return { host: dialogHost, shadow: dialogHost.shadowRoot };
+  }
+  const host = document.createElement('div');
+  host.id = HOST_ID;
+  const shadow = host.attachShadow({ mode: 'open' });
+
+  const style = document.createElement('style');
+  style.textContent = dialogCss;
+  shadow.appendChild(style);
+
+  const mount = document.createElement('div');
+  shadow.appendChild(mount);
+
+  document.body.appendChild(host);
+  dialogHost = host;
+  dialogRoot = createRoot(mount);
+  return { host, shadow };
+}
+
+async function openDialog() {
+  ensureDialogHost();
+  render({ open: true, status: 'loading', message: 'Transkript wird geladen…' });
+
+  let transcript: TranscriptResult;
+  try {
+    transcript = await extractTranscript(location.href);
+  } catch (err) {
+    render({
+      open: true,
+      status: 'error',
+      message: err instanceof Error ? err.message : String(err),
+    });
+    return;
+  }
+
+  render({
+    open: true,
+    status: 'loading',
+    message: `Transkript: ${transcript.fullText.length.toLocaleString('de-DE')} Zeichen. Sende an LLM…`,
+    transcript,
+  });
+
+  const request: RuntimeMessage = {
+    type: 'LLM_REQUEST',
+    transcript: transcript.fullText,
+    videoTitle: transcript.title,
+  };
+
+  try {
+    const response: LLMResponse = await chrome.runtime.sendMessage(request);
+    if (response.ok && response.content) {
+      render({ open: true, status: 'done', message: response.content, transcript });
+    } else {
+      render({
+        open: true,
+        status: 'error',
+        message: response.error ?? 'Unbekannter Fehler.',
+        transcript,
+      });
+    }
+  } catch (err) {
+    render({
+      open: true,
+      status: 'error',
+      message: err instanceof Error ? err.message : String(err),
+      transcript,
+    });
+  }
+}
+
+function closeDialog() {
+  render({ open: false, status: 'idle', message: '' });
+}
+
+function openOptions() {
+  void chrome.runtime.sendMessage({ type: 'OPEN_OPTIONS' } satisfies RuntimeMessage);
+}
+
+interface DialogState {
+  open: boolean;
+  status: 'idle' | 'loading' | 'done' | 'error';
+  message: string;
+  transcript?: TranscriptResult;
+}
+
+function render(state: DialogState) {
+  ensureDialogHost();
+  dialogRoot?.render(
+    <Dialog
+      open={state.open}
+      status={state.status}
+      message={state.message}
+      transcript={state.transcript}
+      onClose={closeDialog}
+      onOpenOptions={openOptions}
+      onRetry={openDialog}
+    />,
+  );
+}
+
+const observer = new MutationObserver(() => ensureButton());
+observer.observe(document.documentElement, { childList: true, subtree: true });
+
+setInterval(() => {
+  if (location.href !== currentHref) {
+    currentHref = location.href;
+    ensureButton();
+  }
+}, 500);
+
+ensureButton();

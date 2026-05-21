@@ -1,0 +1,96 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: Canvas;
+  color: CanvasText;
+}
+
+.options {
+  max-width: 640px;
+  margin: 40px auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.options header h1 {
+  margin: 0 0 4px;
+  font-size: 22px;
+}
+
+.options header p {
+  margin: 0;
+  opacity: 0.7;
+  font-size: 14px;
+}
+
+.options section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.options label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.options label > span {
+  font-weight: 600;
+}
+
+.options input,
+.options select,
+.options textarea {
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in oklab, CanvasText 30%, transparent);
+  border-radius: 6px;
+  background: Field;
+  color: FieldText;
+}
+
+.options textarea {
+  resize: vertical;
+  min-height: 100px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
+.options footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.options button {
+  font: inherit;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in oklab, CanvasText 40%, transparent);
+  background: ButtonFace;
+  color: ButtonText;
+  cursor: pointer;
+}
+
+.options button.link {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  text-decoration: underline;
+  opacity: 0.7;
+}
+
+.options .status {
+  font-size: 12px;
+  color: #2e8b57;
+}

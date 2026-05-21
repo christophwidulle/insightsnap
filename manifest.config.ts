@@ -7,20 +7,25 @@ export default defineManifest({
   version: pkg.version,
   description: pkg.description,
   action: {
-    default_popup: 'src/popup/index.html',
-    default_title: 'InsightSnap',
+    default_title: 'InsightSnap – Einstellungen öffnen',
   },
+  options_page: 'src/options/index.html',
   background: {
     service_worker: 'src/background/index.ts',
     type: 'module',
   },
   content_scripts: [
     {
-      matches: ['<all_urls>'],
-      js: ['src/content/index.ts'],
+      matches: ['https://www.youtube.com/*'],
+      js: ['src/content/youtube.tsx'],
       run_at: 'document_idle',
     },
   ],
-  permissions: ['activeTab', 'storage', 'scripting'],
-  host_permissions: ['<all_urls>'],
+  permissions: ['storage'],
+  host_permissions: [
+    'https://www.youtube.com/*',
+    'https://api.anthropic.com/*',
+    'https://api.openai.com/*',
+    'https://generativelanguage.googleapis.com/*',
+  ],
 });
