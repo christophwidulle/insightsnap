@@ -141,12 +141,126 @@
 }
 
 .is-content {
-  margin: 0;
   font: inherit;
   font-size: 14px;
-  line-height: 1.55;
-  white-space: pre-wrap;
+  line-height: 1.6;
   word-wrap: break-word;
+}
+
+.is-content > *:first-child {
+  margin-top: 0;
+}
+
+.is-content > *:last-child {
+  margin-bottom: 0;
+}
+
+.is-content h1,
+.is-content h2,
+.is-content h3,
+.is-content h4 {
+  margin: 18px 0 8px;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.is-content h1 { font-size: 20px; }
+.is-content h2 { font-size: 17px; }
+.is-content h3 { font-size: 15px; }
+.is-content h4 { font-size: 14px; opacity: 0.85; }
+
+.is-content p {
+  margin: 0 0 10px;
+}
+
+.is-content ul,
+.is-content ol {
+  margin: 0 0 12px;
+  padding-left: 22px;
+}
+
+.is-content li {
+  margin: 4px 0;
+}
+
+.is-content li > p {
+  margin: 0 0 4px;
+}
+
+.is-content strong {
+  font-weight: 600;
+}
+
+.is-content em {
+  font-style: italic;
+}
+
+.is-content a {
+  color: #7eb6ff;
+  text-decoration: underline;
+}
+
+@media (prefers-color-scheme: light) {
+  .is-content a {
+    color: #1a73e8;
+  }
+}
+
+.is-content code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.88em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(128, 128, 128, 0.2);
+}
+
+.is-content pre {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: rgba(128, 128, 128, 0.15);
+  overflow-x: auto;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.is-content pre code {
+  padding: 0;
+  background: transparent;
+  font-size: inherit;
+}
+
+.is-content blockquote {
+  margin: 0 0 12px;
+  padding: 4px 12px;
+  border-left: 3px solid rgba(128, 128, 128, 0.5);
+  opacity: 0.85;
+  font-style: italic;
+}
+
+.is-content hr {
+  border: none;
+  border-top: 1px solid rgba(128, 128, 128, 0.3);
+  margin: 16px 0;
+}
+
+.is-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 12px;
+  font-size: 13px;
+}
+
+.is-content th,
+.is-content td {
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.is-content th {
+  background: rgba(128, 128, 128, 0.12);
+  font-weight: 600;
 }
 
 .is-footer {

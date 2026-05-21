@@ -1,3 +1,5 @@
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { TranscriptResult } from '../shared/types';
 
 interface Props {
@@ -59,7 +61,11 @@ export function Dialog({
               </div>
             </div>
           )}
-          {status === 'done' && <pre className="is-content">{message}</pre>}
+          {status === 'done' && (
+            <div className="is-content">
+              <Markdown remarkPlugins={[remarkGfm]}>{message}</Markdown>
+            </div>
+          )}
         </div>
 
         {transcript && status === 'done' && (
