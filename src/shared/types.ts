@@ -43,7 +43,14 @@ export interface TranscriptResult {
 
 export type RuntimeMessage =
   | { type: 'LLM_REQUEST'; transcript: string; videoTitle: string }
-  | { type: 'OPEN_OPTIONS' };
+  | { type: 'OPEN_OPTIONS' }
+  | { type: 'GET_PLAYER_RESPONSE' };
+
+export interface PlayerResponseResult {
+  ok: boolean;
+  data?: unknown;
+  error?: string;
+}
 
 export interface LLMResponse {
   ok: boolean;

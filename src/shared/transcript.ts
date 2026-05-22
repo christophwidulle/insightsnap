@@ -1,4 +1,9 @@
-import type { TranscriptResult, TranscriptSegment } from './types';
+import type {
+  PlayerResponseResult,
+  RuntimeMessage,
+  TranscriptResult,
+  TranscriptSegment,
+} from './types';
 
 interface CaptionTrack {
   baseUrl: string;
@@ -16,9 +21,9 @@ interface PlayerResponse {
   };
 }
 
-export async function extractTranscript(videoUrl: string): Promise<TranscriptResult> {
+export async function extractTranscript(): Promise<TranscriptResult> {
   try {
-    return await fromCaptionTrack(videoUrl);
+    return await fromCaptionTrack();
   } catch (captionErr) {
     try {
       return fromPanel();
@@ -26,23 +31,27 @@ export async function extractTranscript(videoUrl: string): Promise<TranscriptRes
       const captionMsg = captionErr instanceof Error ? captionErr.message : String(captionErr);
       const panelMsg = panelErr instanceof Error ? panelErr.message : String(panelErr);
       throw new Error(
-        `Transkript nicht verfügbar. Caption-Track: ${captionMsg}. Panel: ${panelMsg}.`,
+        `Transkript nicht verfügbar.\nCaption-Track: ${captionMsg}\nPanel: ${panelMsg}`,
       );
     }
   }
 }
 
-async function fromCaptionTrack(videoUrl: string): Promise<TranscriptResult> {
-  const html = await fetch(videoUrl, { credentials: 'include' }).then((r) => r.text());
-  const player = parsePlayerResponse(html);
-  if (!player) throw new Error('ytInitialPlayerResponse nicht gefunden');
-
+async function fromCaptionTrack(): Promise<TranscriptResult> {
+  const player = await getLivePlayerResponse();
   const tracks = player.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [];
-  if (tracks.length === 0) throw new Error('Keine Untertitel-Spuren');
+  if (tracks.length === 0) {
+    throw new Error('Keine Untertitel-Spuren im Video.');
+  }
 
   const preferred = pickTrack(tracks);
   const segments = await fetchSegments(preferred.baseUrl);
-  if (segments.length === 0) throw new Error('Keine Segmente in Caption-Response');
+  if (segments.length === 0) {
+    throw new Error(
+      `Caption-Response leer (${preferred.languageCode ?? '?'}, ` +
+        `${preferred.kind === 'asr' ? 'auto' : 'manual'}).`,
+    );
+  }
 
   return {
     videoId: player.videoDetails?.videoId ?? '',
@@ -54,14 +63,14 @@ async function fromCaptionTrack(videoUrl: string): Promise<TranscriptResult> {
   };
 }
 
-function parsePlayerResponse(html: string): PlayerResponse | null {
-  const match = html.match(/var ytInitialPlayerResponse\s*=\s*(\{[\s\S]*?\})\s*;\s*var/);
-  if (!match) return null;
-  try {
-    return JSON.parse(match[1]) as PlayerResponse;
-  } catch {
-    return null;
+async function getLivePlayerResponse(): Promise<PlayerResponse> {
+  const res: PlayerResponseResult = await chrome.runtime.sendMessage({
+    type: 'GET_PLAYER_RESPONSE',
+  } satisfies RuntimeMessage);
+  if (!res.ok || !res.data) {
+    throw new Error(res.error ?? 'PlayerResponse nicht verfügbar.');
   }
+  return res.data as PlayerResponse;
 }
 
 function pickTrack(tracks: CaptionTrack[]): CaptionTrack {
@@ -73,6 +82,7 @@ function pickTrack(tracks: CaptionTrack[]): CaptionTrack {
 
 async function fetchSegments(baseUrl: string): Promise<TranscriptSegment[]> {
   const json3Url = withFormat(baseUrl, 'json3');
+  console.debug('[InsightSnap] fetching captions:', json3Url);
   try {
     const res = await fetch(json3Url, { credentials: 'include' });
     if (res.ok) {
@@ -81,17 +91,27 @@ async function fetchSegments(baseUrl: string): Promise<TranscriptSegment[]> {
       if (fromJson.length > 0) return fromJson;
       const fromXml = parseTimedTextXml(body);
       if (fromXml.length > 0) return fromXml;
+      console.debug('[InsightSnap] json3 response had no segments. Body head:', body.slice(0, 200));
+    } else {
+      console.debug('[InsightSnap] json3 fetch failed:', res.status);
     }
-  } catch {
-    // fall through to plain fetch
+  } catch (err) {
+    console.debug('[InsightSnap] json3 fetch error:', err);
   }
 
-  const fallback = await fetch(baseUrl, { credentials: 'include' });
-  const body = await fallback.text();
-  const fromXml = parseTimedTextXml(body);
-  if (fromXml.length > 0) return fromXml;
-  const fromJson = parseJson3(body);
-  return fromJson;
+  try {
+    const fallback = await fetch(baseUrl, { credentials: 'include' });
+    const body = await fallback.text();
+    const fromXml = parseTimedTextXml(body);
+    if (fromXml.length > 0) return fromXml;
+    const fromJson = parseJson3(body);
+    if (fromJson.length > 0) return fromJson;
+    console.debug('[InsightSnap] plain caption response empty. Body head:', body.slice(0, 200));
+  } catch (err) {
+    console.debug('[InsightSnap] plain caption fetch error:', err);
+  }
+
+  return [];
 }
 
 function withFormat(url: string, fmt: string): string {

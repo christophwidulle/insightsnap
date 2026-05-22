@@ -84,7 +84,7 @@ async function openDialog() {
 
   let transcript: TranscriptResult;
   try {
-    transcript = await extractTranscript(location.href);
+    transcript = await extractTranscript();
   } catch (err) {
     render({
       open: true,
