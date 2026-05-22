@@ -193,19 +193,13 @@ function decodeEntities(input: string): string {
 }
 
 function fromPanel(): TranscriptResult {
-  const segmentNodes = document.querySelectorAll('ytd-transcript-segment-renderer');
-  if (segmentNodes.length === 0) {
+  const segments = readPanelSegments();
+  if (segments.length === 0) {
     throw new Error(
-      'Transkript-Panel nicht geöffnet. Öffne es manuell über "..." → "Transkript anzeigen".',
+      'Transkript-Panel-DOM nicht gefunden. Panel offen? Bei "Transkript anzeigen" klicken und ' +
+        'kurz warten, bis Segmente geladen sind.',
     );
   }
-
-  const segments: TranscriptSegment[] = [];
-  segmentNodes.forEach((node) => {
-    const timeText = node.querySelector('.segment-timestamp')?.textContent?.trim() ?? '0';
-    const text = node.querySelector('.segment-text')?.textContent?.trim() ?? '';
-    if (text) segments.push({ start: parseTimestamp(timeText), text });
-  });
 
   return {
     videoId: extractVideoId(location.href) ?? '',
@@ -215,6 +209,80 @@ function fromPanel(): TranscriptResult {
     fullText: segments.map((s) => s.text).join(' '),
     source: 'panel',
   };
+}
+
+function readPanelSegments(): TranscriptSegment[] {
+  const candidates: NodeListOf<Element>[] = [
+    document.querySelectorAll('ytd-transcript-segment-renderer'),
+    document.querySelectorAll('ytd-transcript-segment-list-renderer .segment'),
+    document.querySelectorAll('[class*="ytd-transcript-segment-renderer"]'),
+  ];
+
+  for (const list of candidates) {
+    if (list.length === 0) continue;
+    const segs = extractFromNodes(list);
+    if (segs.length > 0) {
+      console.debug('[InsightSnap] panel read via', list.length, 'nodes (typed selector)');
+      return segs;
+    }
+  }
+
+  return extractFromGenericPanel();
+}
+
+function extractFromNodes(nodes: NodeListOf<Element> | Element[]): TranscriptSegment[] {
+  const result: TranscriptSegment[] = [];
+  nodes.forEach((node) => {
+    const timestampEl =
+      node.querySelector('.segment-timestamp') ??
+      node.querySelector('[class*="segment-timestamp"]') ??
+      node.querySelector('div.segment-start-offset');
+    const textEl =
+      node.querySelector('.segment-text') ??
+      node.querySelector('yt-formatted-string') ??
+      node.querySelector('[class*="segment-text"]');
+
+    const stamp = timestampEl?.textContent?.trim() ?? '0';
+    const text = textEl?.textContent?.trim() ?? '';
+    if (text) result.push({ start: parseTimestamp(stamp), text });
+  });
+  return result;
+}
+
+function extractFromGenericPanel(): TranscriptSegment[] {
+  const panel =
+    document.querySelector('ytd-transcript-renderer') ??
+    document.querySelector('ytd-transcript-search-panel-renderer') ??
+    document.querySelector('[target-id="engagement-panel-searchable-transcript"]') ??
+    document.querySelector('[panel-target-id*="transcript" i]');
+
+  const root = panel ?? document.body;
+  const stampRe = /^\d{1,2}:\d{2}(:\d{2})?$/;
+  const result: TranscriptSegment[] = [];
+  const seen = new Set<string>();
+
+  root.querySelectorAll('div, button, span').forEach((el) => {
+    const txt = el.textContent?.trim() ?? '';
+    if (!stampRe.test(txt)) return;
+
+    const sibling =
+      el.nextElementSibling ??
+      el.parentElement?.querySelector('yt-formatted-string') ??
+      null;
+    const siblingText = sibling?.textContent?.trim() ?? '';
+    if (!siblingText || stampRe.test(siblingText)) return;
+
+    const key = `${txt}|${siblingText.slice(0, 40)}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+
+    result.push({ start: parseTimestamp(txt), text: siblingText });
+  });
+
+  if (result.length > 0) {
+    console.debug('[InsightSnap] panel read via generic stamp scan, segments:', result.length);
+  }
+  return result;
 }
 
 function parseTimestamp(stamp: string): number {
