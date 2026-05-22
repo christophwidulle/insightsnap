@@ -41,9 +41,8 @@ async function fromCaptionTrack(videoUrl: string): Promise<TranscriptResult> {
   if (tracks.length === 0) throw new Error('Keine Untertitel-Spuren');
 
   const preferred = pickTrack(tracks);
-  const xml = await fetch(preferred.baseUrl, { credentials: 'include' }).then((r) => r.text());
-  const segments = parseTimedTextXml(xml);
-  if (segments.length === 0) throw new Error('Leeres Caption-XML');
+  const segments = await fetchSegments(preferred.baseUrl);
+  if (segments.length === 0) throw new Error('Keine Segmente in Caption-Response');
 
   return {
     videoId: player.videoDetails?.videoId ?? '',
@@ -72,15 +71,93 @@ function pickTrack(tracks: CaptionTrack[]): CaptionTrack {
   return pool.find((t) => t.languageCode?.startsWith(userLang)) ?? pool[0];
 }
 
-function parseTimedTextXml(xml: string): TranscriptSegment[] {
-  const doc = new DOMParser().parseFromString(xml, 'text/xml');
-  const nodes = Array.from(doc.querySelectorAll('text'));
-  return nodes
-    .map((node) => ({
-      start: parseFloat(node.getAttribute('start') ?? '0'),
-      text: decodeEntities(node.textContent ?? '').replace(/\s+/g, ' ').trim(),
-    }))
+async function fetchSegments(baseUrl: string): Promise<TranscriptSegment[]> {
+  const json3Url = withFormat(baseUrl, 'json3');
+  try {
+    const res = await fetch(json3Url, { credentials: 'include' });
+    if (res.ok) {
+      const body = await res.text();
+      const fromJson = parseJson3(body);
+      if (fromJson.length > 0) return fromJson;
+      const fromXml = parseTimedTextXml(body);
+      if (fromXml.length > 0) return fromXml;
+    }
+  } catch {
+    // fall through to plain fetch
+  }
+
+  const fallback = await fetch(baseUrl, { credentials: 'include' });
+  const body = await fallback.text();
+  const fromXml = parseTimedTextXml(body);
+  if (fromXml.length > 0) return fromXml;
+  const fromJson = parseJson3(body);
+  return fromJson;
+}
+
+function withFormat(url: string, fmt: string): string {
+  try {
+    const u = new URL(url);
+    u.searchParams.set('fmt', fmt);
+    return u.toString();
+  } catch {
+    return url.includes('?') ? `${url}&fmt=${fmt}` : `${url}?fmt=${fmt}`;
+  }
+}
+
+interface Json3Event {
+  tStartMs?: number;
+  segs?: { utf8?: string }[];
+}
+
+function parseJson3(body: string): TranscriptSegment[] {
+  let data: { events?: Json3Event[] };
+  try {
+    data = JSON.parse(body);
+  } catch {
+    return [];
+  }
+  const events = data.events ?? [];
+  return events
+    .map((ev) => {
+      const text = (ev.segs ?? [])
+        .map((s) => s.utf8 ?? '')
+        .join('')
+        .replace(/\s+/g, ' ')
+        .trim();
+      return { start: (ev.tStartMs ?? 0) / 1000, text };
+    })
     .filter((seg) => seg.text.length > 0);
+}
+
+function parseTimedTextXml(xml: string): TranscriptSegment[] {
+  if (!xml.trim().startsWith('<')) return [];
+  const doc = new DOMParser().parseFromString(xml, 'text/xml');
+  if (doc.querySelector('parsererror')) return [];
+
+  const segments: TranscriptSegment[] = [];
+
+  doc.querySelectorAll('text').forEach((node) => {
+    const text = decodeEntities(node.textContent ?? '').replace(/\s+/g, ' ').trim();
+    if (text) {
+      segments.push({ start: parseFloat(node.getAttribute('start') ?? '0'), text });
+    }
+  });
+
+  if (segments.length === 0) {
+    doc.querySelectorAll('p').forEach((node) => {
+      const inner = Array.from(node.childNodes)
+        .map((c) => c.textContent ?? '')
+        .join('')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (inner) {
+        const t = parseFloat(node.getAttribute('t') ?? '0') / 1000;
+        segments.push({ start: t, text: decodeEntities(inner) });
+      }
+    });
+  }
+
+  return segments;
 }
 
 function decodeEntities(input: string): string {
