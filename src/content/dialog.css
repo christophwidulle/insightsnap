@@ -264,8 +264,28 @@
 }
 
 .is-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding: 10px 20px;
   border-top: 1px solid rgba(128, 128, 128, 0.25);
   font-size: 11px;
   opacity: 0.6;
+}
+
+.is-rerun {
+  padding: 4px 10px;
+  border: 1px solid rgba(128, 128, 128, 0.4);
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.is-rerun:hover {
+  background: rgba(128, 128, 128, 0.15);
 }

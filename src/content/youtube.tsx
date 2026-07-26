@@ -78,24 +78,71 @@ function ensureDialogHost(): { host: HTMLDivElement; shadow: ShadowRoot } {
   return { host, shadow };
 }
 
-async function openDialog() {
+interface Analysis {
+  status: 'loading' | 'done' | 'error';
+  message: string;
+  transcript?: TranscriptResult;
+}
+
+// Per-video result cache. Survives dialog close and SPA navigation; the analysis
+// keeps running in the background and the result is shown on reopen.
+// ponytail: in-memory only — lost on tab reload; use chrome.storage.session if that hurts.
+const analyses = new Map<string, Analysis>();
+let dialogOpen = false;
+
+function currentVideoId(): string {
+  try {
+    return new URL(location.href).searchParams.get('v') ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function setAnalysis(videoId: string, analysis: Analysis) {
+  analyses.set(videoId, analysis);
+  if (dialogOpen && currentVideoId() === videoId) renderCurrent();
+}
+
+function renderCurrent() {
+  const a = analyses.get(currentVideoId());
+  render({
+    open: dialogOpen,
+    status: a?.status ?? 'idle',
+    message: a?.message ?? '',
+    transcript: a?.transcript,
+  });
+}
+
+function openDialog() {
   ensureDialogHost();
-  render({ open: true, status: 'loading', message: 'Transkript wird geladen…' });
+  dialogOpen = true;
+  const videoId = currentVideoId();
+  if (analyses.has(videoId)) {
+    renderCurrent();
+    return;
+  }
+  void runAnalysis(videoId);
+}
+
+function rerunAnalysis() {
+  void runAnalysis(currentVideoId());
+}
+
+async function runAnalysis(videoId: string) {
+  setAnalysis(videoId, { status: 'loading', message: 'Transkript wird geladen…' });
 
   let transcript: TranscriptResult;
   try {
     transcript = await extractTranscript();
   } catch (err) {
-    render({
-      open: true,
+    setAnalysis(videoId, {
       status: 'error',
       message: err instanceof Error ? err.message : String(err),
     });
     return;
   }
 
-  render({
-    open: true,
+  setAnalysis(videoId, {
     status: 'loading',
     message: `Transkript: ${transcript.fullText.length.toLocaleString('de-DE')} Zeichen. Sende an LLM…`,
     transcript,
@@ -110,18 +157,16 @@ async function openDialog() {
   try {
     const response: LLMResponse = await chrome.runtime.sendMessage(request);
     if (response.ok && response.content) {
-      render({ open: true, status: 'done', message: response.content, transcript });
+      setAnalysis(videoId, { status: 'done', message: response.content, transcript });
     } else {
-      render({
-        open: true,
+      setAnalysis(videoId, {
         status: 'error',
         message: response.error ?? 'Unbekannter Fehler.',
         transcript,
       });
     }
   } catch (err) {
-    render({
-      open: true,
+    setAnalysis(videoId, {
       status: 'error',
       message: err instanceof Error ? err.message : String(err),
       transcript,
@@ -130,6 +175,7 @@ async function openDialog() {
 }
 
 function closeDialog() {
+  dialogOpen = false;
   render({ open: false, status: 'idle', message: '' });
 }
 
@@ -154,7 +200,7 @@ function render(state: DialogState) {
       transcript={state.transcript}
       onClose={closeDialog}
       onOpenOptions={openOptions}
-      onRetry={openDialog}
+      onRetry={rerunAnalysis}
     />,
   );
 }

@@ -21,11 +21,8 @@ export default defineManifest({
       run_at: 'document_idle',
     },
   ],
-  permissions: ['storage', 'scripting'],
-  host_permissions: [
-    'https://www.youtube.com/*',
-    'https://api.anthropic.com/*',
-    'https://api.openai.com/*',
-    'https://generativelanguage.googleapis.com/*',
-  ],
+  permissions: ['storage'],
+  // ponytail: broad host permission because the OpenAI-compatible base URL is
+  // user-configurable — any host must be fetchable from the service worker (CORS).
+  host_permissions: ['https://*/*'],
 });

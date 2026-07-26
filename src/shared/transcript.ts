@@ -1,9 +1,4 @@
-import type {
-  PlayerResponseResult,
-  RuntimeMessage,
-  TranscriptResult,
-  TranscriptSegment,
-} from './types';
+import type { TranscriptResult, TranscriptSegment } from './types';
 
 interface CaptionTrack {
   baseUrl: string;
@@ -21,9 +16,19 @@ interface PlayerResponse {
   };
 }
 
+// The default WEB player response (window.ytInitialPlayerResponse) returns caption
+// baseUrls carrying `&exp=xpe`, which require a runtime-generated PoToken — fetching
+// them yields HTTP 200 with an empty body. The IOS/ANDROID InnerTube clients return
+// pot-free baseUrls that fetch fine. Verified 2026-07 against multiple videos.
+// ponytail: hardcoded client versions; bump if InnerTube starts rejecting them.
+const INNERTUBE_CLIENTS = [
+  { clientName: 'IOS', clientVersion: '20.10.4', extra: { deviceModel: 'iPhone16,2' } },
+  { clientName: 'ANDROID', clientVersion: '20.10.38', extra: { androidSdkVersion: 30 } },
+] as const;
+
 export async function extractTranscript(): Promise<TranscriptResult> {
   try {
-    return await fromCaptionTrack();
+    return await fromInnerTube();
   } catch (captionErr) {
     try {
       return fromPanel();
@@ -37,40 +42,71 @@ export async function extractTranscript(): Promise<TranscriptResult> {
   }
 }
 
-async function fromCaptionTrack(): Promise<TranscriptResult> {
-  const player = await getLivePlayerResponse();
-  const tracks = player.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [];
-  if (tracks.length === 0) {
-    throw new Error('Keine Untertitel-Spuren im Video.');
+async function fromInnerTube(): Promise<TranscriptResult> {
+  const videoId = extractVideoId(location.href);
+  if (!videoId) throw new Error('Keine Video-ID in der URL.');
+
+  let lastErr = 'InnerTube-Caption-Abruf fehlgeschlagen.';
+  for (const client of INNERTUBE_CLIENTS) {
+    let player: PlayerResponse;
+    try {
+      player = await fetchInnerTubePlayer(videoId, client);
+    } catch (err) {
+      lastErr = err instanceof Error ? err.message : String(err);
+      continue;
+    }
+
+    const tracks = player.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [];
+    if (tracks.length === 0) {
+      lastErr = 'Keine Untertitel-Spuren im Video.';
+      continue;
+    }
+
+    const preferred = pickTrack(tracks);
+    const segments = await fetchSegments(preferred.baseUrl);
+    if (segments.length === 0) {
+      lastErr = `Caption-Response leer (${preferred.languageCode ?? '?'}, ${client.clientName}).`;
+      continue;
+    }
+
+    return {
+      videoId: player.videoDetails?.videoId ?? videoId,
+      title: player.videoDetails?.title ?? document.title,
+      language: preferred.languageCode ?? '',
+      segments,
+      fullText: segments.map((s) => s.text).join(' '),
+      source: 'caption-track',
+    };
   }
 
-  const preferred = pickTrack(tracks);
-  const segments = await fetchSegments(preferred.baseUrl);
-  if (segments.length === 0) {
-    throw new Error(
-      `Caption-Response leer (${preferred.languageCode ?? '?'}, ` +
-        `${preferred.kind === 'asr' ? 'auto' : 'manual'}).`,
-    );
-  }
-
-  return {
-    videoId: player.videoDetails?.videoId ?? '',
-    title: player.videoDetails?.title ?? document.title,
-    language: preferred.languageCode ?? '',
-    segments,
-    fullText: segments.map((s) => s.text).join(' '),
-    source: 'caption-track',
-  };
+  throw new Error(lastErr);
 }
 
-async function getLivePlayerResponse(): Promise<PlayerResponse> {
-  const res: PlayerResponseResult = await chrome.runtime.sendMessage({
-    type: 'GET_PLAYER_RESPONSE',
-  } satisfies RuntimeMessage);
-  if (!res.ok || !res.data) {
-    throw new Error(res.error ?? 'PlayerResponse nicht verfügbar.');
-  }
-  return res.data as PlayerResponse;
+async function fetchInnerTubePlayer(
+  videoId: string,
+  client: (typeof INNERTUBE_CLIENTS)[number],
+): Promise<PlayerResponse> {
+  const res = await fetch('https://www.youtube.com/youtubei/v1/player?prettyPrint=false', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({
+      context: {
+        client: {
+          clientName: client.clientName,
+          clientVersion: client.clientVersion,
+          hl: (navigator.language || 'en').slice(0, 2),
+          gl: 'US',
+          ...client.extra,
+        },
+      },
+      videoId,
+      contentCheckOk: true,
+      racyCheckOk: true,
+    }),
+  });
+  if (!res.ok) throw new Error(`InnerTube player (${client.clientName}) ${res.status}`);
+  return res.json() as Promise<PlayerResponse>;
 }
 
 function pickTrack(tracks: CaptionTrack[]): CaptionTrack {

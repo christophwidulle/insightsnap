@@ -1,6 +1,6 @@
 import { callLLM } from '../shared/llm';
 import { loadSettings } from '../shared/storage';
-import type { LLMResponse, PlayerResponseResult, RuntimeMessage } from '../shared/types';
+import type { LLMResponse, RuntimeMessage } from '../shared/types';
 
 chrome.runtime.onInstalled.addListener(() => {
   console.log('[InsightSnap] installed');
@@ -11,11 +11,7 @@ chrome.action.onClicked.addListener(() => {
 });
 
 chrome.runtime.onMessage.addListener(
-  (
-    message: RuntimeMessage,
-    sender,
-    sendResponse: (resp: LLMResponse | PlayerResponseResult) => void,
-  ) => {
+  (message: RuntimeMessage, _sender, sendResponse: (resp: LLMResponse) => void) => {
     if (message.type === 'OPEN_OPTIONS') {
       void chrome.runtime.openOptionsPage();
       sendResponse({ ok: true });
@@ -31,37 +27,9 @@ chrome.runtime.onMessage.addListener(
       return true;
     }
 
-    if (message.type === 'GET_PLAYER_RESPONSE') {
-      const tabId = sender.tab?.id;
-      if (!tabId) {
-        sendResponse({ ok: false, error: 'Kein Tab-Kontext.' });
-        return false;
-      }
-      void fetchPlayerResponse(tabId)
-        .then((data) => sendResponse({ ok: true, data }))
-        .catch((err: unknown) =>
-          sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) }),
-        );
-      return true;
-    }
-
     return false;
   },
 );
-
-async function fetchPlayerResponse(tabId: number): Promise<unknown> {
-  const results = await chrome.scripting.executeScript({
-    target: { tabId },
-    world: 'MAIN',
-    func: () => {
-      const w = window as unknown as { ytInitialPlayerResponse?: unknown };
-      return w.ytInitialPlayerResponse ?? null;
-    },
-  });
-  const data = results[0]?.result;
-  if (!data) throw new Error('window.ytInitialPlayerResponse nicht verfügbar.');
-  return data;
-}
 
 async function handleLLM(
   message: Extract<RuntimeMessage, { type: 'LLM_REQUEST' }>,

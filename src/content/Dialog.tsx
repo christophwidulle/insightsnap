@@ -70,9 +70,14 @@ export function Dialog({
 
         {transcript && status === 'done' && (
           <footer className="is-footer">
-            Quelle: {transcript.source === 'caption-track' ? 'Caption-Track' : 'Transkript-Panel'}
-            {transcript.language && ` · ${transcript.language}`} ·{' '}
-            {transcript.fullText.length.toLocaleString('de-DE')} Zeichen
+            <span>
+              Quelle: {transcript.source === 'caption-track' ? 'Caption-Track' : 'Transkript-Panel'}
+              {transcript.language && ` · ${transcript.language}`} ·{' '}
+              {transcript.fullText.length.toLocaleString('de-DE')} Zeichen
+            </span>
+            <button type="button" className="is-rerun" onClick={onRetry}>
+              Neu analysieren
+            </button>
           </footer>
         )}
       </div>
