@@ -155,7 +155,7 @@ async function runAnalysis(videoId: string) {
   };
 
   try {
-    const response: LLMResponse = await chrome.runtime.sendMessage(request);
+    const response = await send<LLMResponse>(request);
     if (response.ok && response.content) {
       setAnalysis(videoId, { status: 'done', message: response.content, transcript });
     } else {
@@ -180,7 +180,31 @@ function closeDialog() {
 }
 
 function openOptions() {
-  void chrome.runtime.sendMessage({ type: 'OPEN_OPTIONS' } satisfies RuntimeMessage);
+  void send({ type: 'OPEN_OPTIONS' }).catch((err: unknown) => {
+    setAnalysis(currentVideoId(), {
+      status: 'error',
+      message: err instanceof Error ? err.message : String(err),
+      transcript: analyses.get(currentVideoId())?.transcript,
+    });
+  });
+}
+
+// Nach einem Extension-Reload/-Update bleibt das Content-Script im offenen Tab zurück:
+// Chrome entfernt dann chrome.runtime, sendMessage würde mit einem nackten
+// "Cannot read properties of undefined" sterben. chrome.runtime.id ist der Liveness-Check.
+async function send<T>(message: RuntimeMessage): Promise<T> {
+  if (!chrome?.runtime?.id) {
+    throw new Error('Extension wurde neu geladen. Bitte die Seite neu laden (F5).');
+  }
+  try {
+    return (await chrome.runtime.sendMessage(message)) as T;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes('context invalidated') || msg.includes('Receiving end does not exist')) {
+      throw new Error('Extension wurde neu geladen. Bitte die Seite neu laden (F5).');
+    }
+    throw err;
+  }
 }
 
 interface DialogState {
