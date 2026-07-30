@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { TranscriptResult } from '../shared/types';
@@ -21,7 +22,19 @@ export function Dialog({
   onOpenOptions,
   onRetry,
 }: Props) {
+  const [copied, setCopied] = useState(false);
+
   if (!open) return null;
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(message);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // ponytail: kein Fallback – Clipboard-API ist auf https/Nutzergeste immer da
+    }
+  };
 
   return (
     <div className="is-overlay" role="dialog" aria-modal="true" onClick={onClose}>
@@ -32,6 +45,15 @@ export function Dialog({
             {transcript?.title && <p className="is-subtitle">{transcript.title}</p>}
           </div>
           <div className="is-actions">
+            {status === 'done' && (
+              <button
+                type="button"
+                onClick={copy}
+                title={copied ? 'Kopiert' : 'Text kopieren'}
+              >
+                {copied ? '✓' : '⧉'}
+              </button>
+            )}
             <button type="button" onClick={onOpenOptions} title="Einstellungen">
               ⚙
             </button>
