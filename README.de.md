@@ -1,6 +1,6 @@
 # InsightSnap
 
-*[English version](README.md)*
+_[English version](README.md)_
 
 Chrome/Edge-Erweiterung, die YouTube-Videos zusammenfasst: Transkript ziehen, an ein
 LLM deiner Wahl schicken, Ergebnis direkt auf der Videoseite anzeigen.
@@ -32,13 +32,13 @@ F5 neu laden.
 
 Auf das Extension-Icon klicken (oder im Dialog auf ⚙) → Optionsseite.
 
-| Feld | Bedeutung |
-|------|-----------|
-| **Provider** | Anthropic Claude, OpenAI, Google Gemini oder OpenAI-kompatibel |
-| **Model** | Dropdown, das die verfügbaren Modelle beim Provider abfragt, sobald ein API-Key eingetragen ist. Lädt der Provider keine Liste, wird daraus ein Freitextfeld. |
-| **API key** | Wird nur lokal in `chrome.storage.local` gespeichert |
-| **Base URL** | Nur bei „OpenAI-compatible", z.B. `https://api.example.com/v1` |
-| **Prompt** | Systemprompt für die Analyse, per Button auf den Default zurücksetzbar |
+| Feld         | Bedeutung                                                                                                                                                     |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Provider** | Anthropic Claude, OpenAI, Google Gemini oder OpenAI-kompatibel                                                                                                |
+| **Model**    | Dropdown, das die verfügbaren Modelle beim Provider abfragt, sobald ein API-Key eingetragen ist. Lädt der Provider keine Liste, wird daraus ein Freitextfeld. |
+| **API key**  | Wird nur lokal in `chrome.storage.local` gespeichert                                                                                                          |
+| **Base URL** | Nur bei „OpenAI-compatible", z.B. `https://api.example.com/v1`                                                                                                |
+| **Prompt**   | Systemprompt für die Analyse, per Button auf den Default zurücksetzbar                                                                                        |
 
 **Save** nicht vergessen.
 

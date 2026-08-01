@@ -33,7 +33,6 @@ async function handleLLM(
   const settings = await loadSettings();
   const systemPrompt = settings.prompt;
   const userContent =
-    `Video-Titel: ${message.videoTitle}\n\n` +
-    `Transkript:\n"""\n${message.transcript}\n"""`;
+    `Video title: ${message.videoTitle}\n\n` + `Transcript:\n"""\n${message.transcript}\n"""`;
   return callLLM({ settings, systemPrompt, userContent });
 }

@@ -35,9 +35,7 @@ export async function extractTranscript(): Promise<TranscriptResult> {
     } catch (panelErr) {
       const captionMsg = captionErr instanceof Error ? captionErr.message : String(captionErr);
       const panelMsg = panelErr instanceof Error ? panelErr.message : String(panelErr);
-      throw new Error(
-        `No transcript available.\nCaption track: ${captionMsg}\nPanel: ${panelMsg}`,
-      );
+      throw new Error(`No transcript available.\nCaption track: ${captionMsg}\nPanel: ${panelMsg}`);
     }
   }
 }
@@ -195,7 +193,9 @@ function parseTimedTextXml(xml: string): TranscriptSegment[] {
   const segments: TranscriptSegment[] = [];
 
   doc.querySelectorAll('text').forEach((node) => {
-    const text = decodeEntities(node.textContent ?? '').replace(/\s+/g, ' ').trim();
+    const text = decodeEntities(node.textContent ?? '')
+      .replace(/\s+/g, ' ')
+      .trim();
     if (text) {
       segments.push({ start: parseFloat(node.getAttribute('start') ?? '0'), text });
     }
@@ -304,9 +304,7 @@ function extractFromGenericPanel(): TranscriptSegment[] {
     if (!stampRe.test(txt)) return;
 
     const sibling =
-      el.nextElementSibling ??
-      el.parentElement?.querySelector('yt-formatted-string') ??
-      null;
+      el.nextElementSibling ?? el.parentElement?.querySelector('yt-formatted-string') ?? null;
     const siblingText = sibling?.textContent?.trim() ?? '';
     if (!siblingText || stampRe.test(siblingText)) return;
 

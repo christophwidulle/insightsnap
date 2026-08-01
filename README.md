@@ -1,11 +1,11 @@
 # InsightSnap
 
-*[Deutsche Version](README.de.md)*
+_[Deutsche Version](README.de.md)_
 
 Chrome/Edge extension that summarizes YouTube videos: it pulls the transcript, sends it to
 an LLM of your choice, and renders the result right on the video page.
 
-On every YouTube watch page a **✨ InsightSnap** button appears next to *Share* / *Save*.
+On every YouTube watch page a **✨ InsightSnap** button appears next to _Share_ / _Save_.
 Click it and the analysis opens in a dialog.
 
 <!-- Drop a screenshot at docs/screenshot.png and uncomment the next line.
@@ -28,13 +28,13 @@ To update: unzip the new release, replace the old folder, hit **⟳ Reload** in
 
 Click the extension icon (or ⚙ in the dialog) to open the options page.
 
-| Field | Meaning |
-|-------|---------|
-| **Provider** | Anthropic Claude, OpenAI, Google Gemini, or OpenAI-compatible |
-| **Model** | Dropdown that queries the provider for available models once an API key is set. If the provider serves no list, it falls back to a free-text field. |
-| **API key** | Stored locally in `chrome.storage.local`, nowhere else |
-| **Base URL** | Only for *OpenAI-compatible*, e.g. `https://api.example.com/v1` |
-| **Prompt** | System prompt for the analysis, resettable to the default |
+| Field        | Meaning                                                                                                                                             |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Provider** | Anthropic Claude, OpenAI, Google Gemini, or OpenAI-compatible                                                                                       |
+| **Model**    | Dropdown that queries the provider for available models once an API key is set. If the provider serves no list, it falls back to a free-text field. |
+| **API key**  | Stored locally in `chrome.storage.local`, nowhere else                                                                                              |
+| **Base URL** | Only for _OpenAI-compatible_, e.g. `https://api.example.com/v1`                                                                                     |
+| **Prompt**   | System prompt for the analysis, resettable to the default                                                                                           |
 
 Don't forget **Save**.
 

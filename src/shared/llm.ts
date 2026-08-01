@@ -15,12 +15,7 @@ export async function callLLM({ settings, systemPrompt, userContent }: CallArgs)
     case 'anthropic':
       return callAnthropic(settings, systemPrompt, userContent);
     case 'openai':
-      return callOpenAICompatible(
-        settings,
-        systemPrompt,
-        userContent,
-        'https://api.openai.com/v1',
-      );
+      return callOpenAICompatible(settings, systemPrompt, userContent, 'https://api.openai.com/v1');
     case 'openai-compatible': {
       const base = settings.baseUrl.replace(/\/+$/, '');
       if (!base) throw new Error('No base URL set for the OpenAI-compatible endpoint.');

@@ -1,6 +1,10 @@
 :host {
   all: initial;
-  font-family: 'Roboto', system-ui, -apple-system, sans-serif;
+  font-family:
+    'Roboto',
+    system-ui,
+    -apple-system,
+    sans-serif;
   color-scheme: light dark;
 }
 
@@ -164,10 +168,19 @@
   font-weight: 600;
 }
 
-.is-content h1 { font-size: 20px; }
-.is-content h2 { font-size: 17px; }
-.is-content h3 { font-size: 15px; }
-.is-content h4 { font-size: 14px; opacity: 0.85; }
+.is-content h1 {
+  font-size: 20px;
+}
+.is-content h2 {
+  font-size: 17px;
+}
+.is-content h3 {
+  font-size: 15px;
+}
+.is-content h4 {
+  font-size: 14px;
+  opacity: 0.85;
+}
 
 .is-content p {
   margin: 0 0 10px;
