@@ -6,6 +6,24 @@ interface CallArgs {
   userContent: string;
 }
 
+// Base URL of every provider that speaks OpenAI's chat-completions format. Bedrock is one
+// of them: its bedrock-mantle endpoint takes the Amazon Bedrock API key as a bearer token,
+// so it needs no request path of its own — only a URL built from the region. An empty
+// string means "no such endpoint" (Anthropic/Gemini) or "not configured yet".
+export function resolveBaseUrl(s: Settings): string {
+  switch (s.provider) {
+    case 'openai':
+      return 'https://api.openai.com/v1';
+    case 'bedrock':
+      return s.region ? `https://bedrock-mantle.${s.region}.api.aws/v1` : '';
+    case 'openai-compatible':
+      return s.baseUrl.replace(/\/+$/, '');
+    case 'anthropic':
+    case 'gemini':
+      return '';
+  }
+}
+
 export async function callLLM({ settings, systemPrompt, userContent }: CallArgs): Promise<string> {
   if (!settings.apiKey && settings.provider !== 'openai-compatible') {
     throw new Error('No API key set. Add one in the extension options.');
@@ -15,15 +33,24 @@ export async function callLLM({ settings, systemPrompt, userContent }: CallArgs)
     case 'anthropic':
       return callAnthropic(settings, systemPrompt, userContent);
     case 'openai':
-      return callOpenAICompatible(settings, systemPrompt, userContent, 'https://api.openai.com/v1');
-    case 'openai-compatible': {
-      const base = settings.baseUrl.replace(/\/+$/, '');
-      if (!base) throw new Error('No base URL set for the OpenAI-compatible endpoint.');
-      return callOpenAICompatible(settings, systemPrompt, userContent, base);
-    }
+    case 'bedrock':
+    case 'openai-compatible':
+      return callOpenAICompatible(settings, systemPrompt, userContent, requireBaseUrl(settings));
     case 'gemini':
       return callGemini(settings, systemPrompt, userContent);
   }
+}
+
+function requireBaseUrl(s: Settings): string {
+  const base = resolveBaseUrl(s);
+  if (!base) {
+    throw new Error(
+      s.provider === 'bedrock'
+        ? 'No region set for Bedrock.'
+        : 'No base URL set for the OpenAI-compatible endpoint.',
+    );
+  }
+  return base;
 }
 
 // Model lists per provider. Runs from the options page (extension context with
@@ -42,12 +69,9 @@ export async function listModels(s: Settings): Promise<string[]> {
       return sorted((data?.data ?? []).map((m: { id: string }) => m.id));
     }
     case 'openai':
-      return listOpenAICompatible(s, 'https://api.openai.com/v1');
-    case 'openai-compatible': {
-      const base = s.baseUrl.replace(/\/+$/, '');
-      if (!base) throw new Error('No base URL set for the OpenAI-compatible endpoint.');
-      return listOpenAICompatible(s, base);
-    }
+    case 'bedrock':
+    case 'openai-compatible':
+      return listOpenAICompatible(s, requireBaseUrl(s));
     case 'gemini': {
       const res = await fetch(
         'https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000',

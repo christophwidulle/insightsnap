@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { listModels } from '../shared/llm';
+import { listModels, resolveBaseUrl } from '../shared/llm';
 import { loadSettings, saveSettings } from '../shared/storage';
 import {
+  BEDROCK_REGIONS,
   DEFAULT_MODELS,
   DEFAULT_PROMPT,
   DEFAULT_SETTINGS,
@@ -13,8 +14,12 @@ const PROVIDERS: { value: LLMProvider; label: string }[] = [
   { value: 'anthropic', label: 'Anthropic Claude' },
   { value: 'openai', label: 'OpenAI' },
   { value: 'gemini', label: 'Google Gemini' },
+  { value: 'bedrock', label: 'AWS Bedrock' },
   { value: 'openai-compatible', label: 'OpenAI-compatible (custom URL)' },
 ];
+
+// Providers without a fixed host in the manifest: access has to be granted first.
+const NEEDS_GRANT: LLMProvider[] = ['bedrock', 'openai-compatible'];
 
 // Chrome match patterns carry no port, so http://localhost:11434 has to collapse to
 // http://localhost/* before it can be requested.
@@ -38,7 +43,7 @@ export function Options() {
     void loadSettings().then(setSettings);
   }, []);
 
-  const { provider, apiKey, baseUrl } = settings;
+  const { provider, apiKey, baseUrl, region } = settings;
 
   // Debounced so typing in the API key field does not fire a request per keystroke.
   useEffect(() => {
@@ -48,9 +53,10 @@ export function Options() {
       alive = false;
       clearTimeout(timer);
     };
-  }, [provider, apiKey, baseUrl]);
+  }, [provider, apiKey, baseUrl, region]);
 
   async function fetchModels(alive: () => boolean = () => true) {
+    const query = { ...DEFAULT_SETTINGS, provider, apiKey, baseUrl, region };
     const missing = provider === 'openai-compatible' ? !baseUrl : !apiKey;
     if (missing) {
       setModels([]);
@@ -63,9 +69,10 @@ export function Options() {
       return;
     }
 
-    // Anthropic/OpenAI/Gemini are in the manifest; a custom endpoint has to be granted
-    // by the user before either this fetch or the service worker can reach it.
-    const target = provider === 'openai-compatible' ? hostPattern(baseUrl) : null;
+    // Anthropic/OpenAI/Gemini are in the manifest; Bedrock's regional host and a custom
+    // endpoint have to be granted by the user before either this fetch or the service
+    // worker can reach them.
+    const target = NEEDS_GRANT.includes(provider) ? hostPattern(resolveBaseUrl(query)) : null;
     if (target && !(await chrome.permissions.contains({ origins: [target.pattern] }))) {
       if (!alive()) return;
       setModels([]);
@@ -77,7 +84,7 @@ export function Options() {
 
     setModelNote('Loading models…');
     try {
-      const list = await listModels({ ...DEFAULT_SETTINGS, provider, apiKey, baseUrl });
+      const list = await listModels(query);
       if (!alive()) return;
       setModels(list);
       setModelNote(list.length > 0 ? null : 'Provider reports no models.');
@@ -183,6 +190,22 @@ export function Options() {
           />
         </label>
 
+        {provider === 'bedrock' && (
+          <label>
+            <span>Region</span>
+            <select value={settings.region} onChange={(e) => update('region', e.target.value)}>
+              {BEDROCK_REGIONS.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+            <span className="hint">
+              Endpoint: {resolveBaseUrl(settings)} – authenticates with an Amazon Bedrock API key.
+            </span>
+          </label>
+        )}
+
         {isCustom && (
           <label>
             <span>Base URL</span>
@@ -192,17 +215,19 @@ export function Options() {
               placeholder="https://api.example.com/v1"
               onChange={(e) => update('baseUrl', e.target.value)}
             />
-            {grant && (
-              <>
-                <span className="hint">
-                  InsightSnap may only reach the built-in providers. A custom endpoint needs a
-                  one-time access grant.
-                </span>
-                <button type="button" className="grant" onClick={requestGrant}>
-                  Grant access to {grant.host}
-                </button>
-              </>
-            )}
+          </label>
+        )}
+
+        {grant && (
+          <label>
+            <span>Access</span>
+            <span className="hint">
+              InsightSnap may only reach the built-in providers. {grant.host} needs a one-time
+              access grant.
+            </span>
+            <button type="button" className="grant" onClick={requestGrant}>
+              Grant access to {grant.host}
+            </button>
           </label>
         )}
 

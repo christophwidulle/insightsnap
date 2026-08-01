@@ -30,18 +30,29 @@ Click the extension icon (or ⚙ in the dialog) to open the options page.
 
 | Field        | Meaning                                                                                                                                             |
 | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Provider** | Anthropic Claude, OpenAI, Google Gemini, or OpenAI-compatible                                                                                       |
+| **Provider** | Anthropic Claude, OpenAI, Google Gemini, AWS Bedrock, or OpenAI-compatible                                                                          |
 | **Model**    | Dropdown that queries the provider for available models once an API key is set. If the provider serves no list, it falls back to a free-text field. |
 | **API key**  | Stored locally in `chrome.storage.local`, nowhere else                                                                                              |
+| **Region**   | Only for _AWS Bedrock_, turns into `https://bedrock-mantle.{region}.api.aws/v1`                                                                     |
 | **Base URL** | Only for _OpenAI-compatible_, e.g. `https://api.example.com/v1`                                                                                     |
+| **Access**   | Shows up for Bedrock and custom endpoints: their host is not in the manifest and needs a one-time grant                                             |
 | **Prompt**   | System prompt for the analysis, resettable to the default                                                                                           |
 
 Don't forget **Save**.
 
 Get API keys from
 [Anthropic](https://console.anthropic.com/settings/keys),
-[OpenAI](https://platform.openai.com/api-keys), or
-[Google AI Studio](https://aistudio.google.com/apikey).
+[OpenAI](https://platform.openai.com/api-keys),
+[Google AI Studio](https://aistudio.google.com/apikey), or
+[AWS Bedrock](https://docs.aws.amazon.com/bedrock/latest/userguide/api-keys.html).
+
+### AWS Bedrock
+
+Bedrock's `bedrock-mantle` endpoint speaks the OpenAI chat-completions format and takes
+the Bedrock API key as a bearer token — no SigV4 signing needed. Pick your region in the
+options page, paste the key, and the model dropdown fills itself. Model IDs carry a
+prefix there, e.g. `us.anthropic.claude-sonnet-4-6`. The regional host is not in the
+manifest, so the options page asks for a one-time access grant, same as a custom endpoint.
 
 ### Custom endpoints
 
