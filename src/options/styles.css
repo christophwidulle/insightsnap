@@ -90,6 +90,10 @@ body {
   opacity: 0.7;
 }
 
+.options button.grant {
+  align-self: flex-start;
+}
+
 .options .hint {
   font-size: 12px;
   opacity: 0.7;

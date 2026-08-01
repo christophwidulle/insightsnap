@@ -16,11 +16,23 @@ const PROVIDERS: { value: LLMProvider; label: string }[] = [
   { value: 'openai-compatible', label: 'OpenAI-kompatibel (Custom URL)' },
 ];
 
+// Chrome match patterns carry no port, so http://localhost:11434 has to collapse to
+// http://localhost/* before it can be requested.
+function hostPattern(url: string): { pattern: string; host: string } | null {
+  try {
+    const u = new URL(url);
+    return { pattern: `${u.protocol}//${u.hostname}/*`, host: u.hostname };
+  } catch {
+    return null;
+  }
+}
+
 export function Options() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [status, setStatus] = useState<string | null>(null);
   const [models, setModels] = useState<string[]>([]);
   const [modelNote, setModelNote] = useState<string | null>(null);
+  const [grant, setGrant] = useState<{ pattern: string; host: string } | null>(null);
 
   useEffect(() => {
     void loadSettings().then(setSettings);
@@ -42,6 +54,7 @@ export function Options() {
     const missing = provider === 'openai-compatible' ? !baseUrl : !apiKey;
     if (missing) {
       setModels([]);
+      setGrant(null);
       setModelNote(
         provider === 'openai-compatible'
           ? 'Base-URL eintragen – dann werden die Modelle geladen.'
@@ -49,6 +62,18 @@ export function Options() {
       );
       return;
     }
+
+    // Anthropic/OpenAI/Gemini are in the manifest; a custom endpoint has to be granted
+    // by the user before either this fetch or the service worker can reach it.
+    const target = provider === 'openai-compatible' ? hostPattern(baseUrl) : null;
+    if (target && !(await chrome.permissions.contains({ origins: [target.pattern] }))) {
+      if (!alive()) return;
+      setModels([]);
+      setGrant(target);
+      setModelNote(`Zugriff auf ${target.host} noch nicht erteilt.`);
+      return;
+    }
+    setGrant(null);
 
     setModelNote('Lade Modelle…');
     try {
@@ -81,6 +106,19 @@ export function Options() {
 
   function resetPrompt() {
     update('prompt', DEFAULT_PROMPT);
+  }
+
+  // chrome.permissions.request needs an unbroken user gesture — no await before the call.
+  function requestGrant() {
+    if (!grant) return;
+    void chrome.permissions.request({ origins: [grant.pattern] }).then((granted) => {
+      if (granted) {
+        setGrant(null);
+        void fetchModels();
+      } else {
+        setModelNote(`Zugriff auf ${grant.host} abgelehnt.`);
+      }
+    });
   }
 
   const isCustom = settings.provider === 'openai-compatible';
@@ -154,6 +192,17 @@ export function Options() {
               placeholder="https://api.example.com/v1"
               onChange={(e) => update('baseUrl', e.target.value)}
             />
+            {grant && (
+              <>
+                <span className="hint">
+                  InsightSnap darf nur die eingebauten Provider erreichen. Für einen eigenen
+                  Endpoint musst du den Zugriff einmalig freigeben.
+                </span>
+                <button type="button" className="grant" onClick={requestGrant}>
+                  Zugriff auf {grant.host} erlauben
+                </button>
+              </>
+            )}
           </label>
         )}
 

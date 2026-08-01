@@ -33,7 +33,14 @@ export default defineManifest({
     },
   ],
   permissions: ['storage'],
-  // ponytail: broad host permission because the OpenAI-compatible base URL is
-  // user-configurable — any host must be fetchable from the service worker (CORS).
-  host_permissions: ['https://*/*'],
+  host_permissions: [
+    'https://api.anthropic.com/*',
+    'https://api.openai.com/*',
+    'https://generativelanguage.googleapis.com/*',
+  ],
+  // The OpenAI-compatible base URL is user-configurable, so its host cannot be known
+  // upfront. The options page requests it on demand instead of shipping a wildcard
+  // that Chrome would restrict by default anyway. Plain-http localhost is listed for
+  // local runtimes (Ollama, LM Studio); match patterns ignore the port.
+  optional_host_permissions: ['https://*/*', 'http://localhost/*', 'http://127.0.0.1/*'],
 });
