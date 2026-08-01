@@ -26,7 +26,9 @@
     "release": "npm run build && cd dist && zip -qr ../insightsnap-$npm_package_version.zip . -x '.DS_Store' '**/.DS_Store'",
     "preview": "vite preview",
     "test": "node --test test/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "react": "^19.2.6",
@@ -40,6 +42,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^6.0.2",
+    "prettier": "^3.9.6",
     "typescript": "^6.0.3",
     "vite": "^8.0.14"
   }
