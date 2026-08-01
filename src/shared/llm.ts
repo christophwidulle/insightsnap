@@ -56,7 +56,8 @@ export async function listModels(s: Settings): Promise<string[]> {
     }
     case 'gemini': {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000&key=${encodeURIComponent(s.apiKey)}`,
+        'https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000',
+        { headers: { 'x-goog-api-key': s.apiKey } },
       );
       const data = await okJson(res, 'Gemini');
       const models: { name: string; supportedGenerationMethods?: string[] }[] = data?.models ?? [];
@@ -98,7 +99,9 @@ async function callAnthropic(s: Settings, system: string, user: string): Promise
     },
     body: JSON.stringify({
       model: s.model,
-      max_tokens: 4096,
+      // Anthropic requires this field. 8192 covers any realistic summary; legacy
+      // models capped at 4096 (claude-3-haiku) will surface a 400 from the API.
+      max_tokens: 8192,
       system,
       messages: [{ role: 'user', content: user }],
     }),
@@ -143,10 +146,10 @@ async function callOpenAICompatible(
 async function callGemini(s: Settings, system: string, user: string): Promise<string> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
     s.model,
-  )}:generateContent?key=${encodeURIComponent(s.apiKey)}`;
+  )}:generateContent`;
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', 'x-goog-api-key': s.apiKey },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: system }] },
       contents: [{ role: 'user', parts: [{ text: user }] }],
