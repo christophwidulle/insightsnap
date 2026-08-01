@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { MAX_TRANSCRIPT_CHARS } from '../shared/types';
 import type { TranscriptResult } from '../shared/types';
 
 interface Props {
@@ -11,6 +12,13 @@ interface Props {
   onClose: () => void;
   onOpenOptions: () => void;
   onRetry: () => void;
+}
+
+// Never report the full length silently when only a prefix was sent to the model.
+function charCount({ fullText }: TranscriptResult): string {
+  const total = fullText.length.toLocaleString('de-DE');
+  if (fullText.length <= MAX_TRANSCRIPT_CHARS) return `${total} Zeichen`;
+  return `${MAX_TRANSCRIPT_CHARS.toLocaleString('de-DE')} von ${total} Zeichen (gekürzt)`;
 }
 
 export function Dialog({
@@ -94,8 +102,7 @@ export function Dialog({
           <footer className="is-footer">
             <span>
               Quelle: {transcript.source === 'caption-track' ? 'Caption-Track' : 'Transkript-Panel'}
-              {transcript.language && ` · ${transcript.language}`} ·{' '}
-              {transcript.fullText.length.toLocaleString('de-DE')} Zeichen
+              {transcript.language && ` · ${transcript.language}`} · {charCount(transcript)}
             </span>
             <button type="button" className="is-rerun" onClick={onRetry}>
               Neu analysieren

@@ -2,10 +2,6 @@ import { callLLM } from '../shared/llm';
 import { loadSettings } from '../shared/storage';
 import type { LLMResponse, RuntimeMessage } from '../shared/types';
 
-chrome.runtime.onInstalled.addListener(() => {
-  console.log('[InsightSnap] installed');
-});
-
 chrome.action.onClicked.addListener(() => {
   void chrome.runtime.openOptionsPage();
 });

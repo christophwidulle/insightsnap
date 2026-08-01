@@ -27,6 +27,10 @@ export const DEFAULT_SETTINGS: Settings = {
   prompt: DEFAULT_PROMPT,
 };
 
+// Runaway guard, not a cost control: a 3h video is ~150k chars, which every current
+// model swallows. This only stops a 12h stream with auto-captions from being sent whole.
+export const MAX_TRANSCRIPT_CHARS = 400_000;
+
 export interface TranscriptSegment {
   start: number;
   text: string;

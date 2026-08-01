@@ -1,13 +1,13 @@
 import { createRoot, type Root } from 'react-dom/client';
 import { Dialog } from './Dialog';
 import { extractTranscript } from '../shared/transcript';
+import { MAX_TRANSCRIPT_CHARS } from '../shared/types';
 import type { LLMResponse, RuntimeMessage, TranscriptResult } from '../shared/types';
 import dialogCss from './dialog.css?inline';
 
 const BUTTON_ID = 'insightsnap-trigger';
 const HOST_ID = 'insightsnap-host';
 
-let currentHref = location.href;
 let dialogRoot: Root | null = null;
 let dialogHost: HTMLDivElement | null = null;
 
@@ -150,7 +150,7 @@ async function runAnalysis(videoId: string) {
 
   const request: RuntimeMessage = {
     type: 'LLM_REQUEST',
-    transcript: transcript.fullText,
+    transcript: transcript.fullText.slice(0, MAX_TRANSCRIPT_CHARS),
     videoTitle: transcript.title,
   };
 
@@ -229,14 +229,10 @@ function render(state: DialogState) {
   );
 }
 
-const observer = new MutationObserver(() => ensureButton());
-observer.observe(document.documentElement, { childList: true, subtree: true });
-
-setInterval(() => {
-  if (location.href !== currentHref) {
-    currentHref = location.href;
-    ensureButton();
-  }
-}, 500);
+// Polling instead of a MutationObserver: YouTube mutates the DOM constantly, so an
+// observer on documentElement/subtree fires thousands of times per minute. ensureButton
+// is two DOM lookups and idempotent, so half-second polling covers SPA navigation and
+// re-inserts the button whenever a YouTube rerender drops it.
+setInterval(ensureButton, 500);
 
 ensureButton();
