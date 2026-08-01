@@ -8,7 +8,7 @@ interface CallArgs {
 
 export async function callLLM({ settings, systemPrompt, userContent }: CallArgs): Promise<string> {
   if (!settings.apiKey && settings.provider !== 'openai-compatible') {
-    throw new Error('API-Key fehlt. Bitte in den Einstellungen eintragen.');
+    throw new Error('No API key set. Add one in the extension options.');
   }
 
   switch (settings.provider) {
@@ -23,7 +23,7 @@ export async function callLLM({ settings, systemPrompt, userContent }: CallArgs)
       );
     case 'openai-compatible': {
       const base = settings.baseUrl.replace(/\/+$/, '');
-      if (!base) throw new Error('Base-URL fehlt für OpenAI-kompatiblen Endpoint.');
+      if (!base) throw new Error('No base URL set for the OpenAI-compatible endpoint.');
       return callOpenAICompatible(settings, systemPrompt, userContent, base);
     }
     case 'gemini':
@@ -31,9 +31,8 @@ export async function callLLM({ settings, systemPrompt, userContent }: CallArgs)
   }
 }
 
-// Modell-Listen der Provider. Läuft aus der Options-Seite (Extension-Kontext mit
-// host_permissions), daher kein CORS-Problem — sofern der Websitezugriff nicht
-// eingeschränkt ist. Fehler werden durchgereicht und in der UI angezeigt.
+// Model lists per provider. Runs from the options page (extension context with
+// host_permissions), so no CORS issue. Errors bubble up and are shown in the UI.
 export async function listModels(s: Settings): Promise<string[]> {
   switch (s.provider) {
     case 'anthropic': {
@@ -51,7 +50,7 @@ export async function listModels(s: Settings): Promise<string[]> {
       return listOpenAICompatible(s, 'https://api.openai.com/v1');
     case 'openai-compatible': {
       const base = s.baseUrl.replace(/\/+$/, '');
-      if (!base) throw new Error('Base-URL fehlt für OpenAI-kompatiblen Endpoint.');
+      if (!base) throw new Error('No base URL set for the OpenAI-compatible endpoint.');
       return listOpenAICompatible(s, base);
     }
     case 'gemini': {
@@ -112,7 +111,7 @@ async function callAnthropic(s: Settings, system: string, user: string): Promise
     .filter((b: { type: string }) => b.type === 'text')
     .map((b: { text: string }) => b.text)
     .join('\n');
-  if (!text) throw new Error('Leere Antwort von Anthropic.');
+  if (!text) throw new Error('Empty response from Anthropic.');
   return text;
 }
 
@@ -139,7 +138,7 @@ async function callOpenAICompatible(
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? `Provider ${res.status}`);
   const text = data?.choices?.[0]?.message?.content;
-  if (!text) throw new Error('Leere Antwort vom Provider.');
+  if (!text) throw new Error('Empty response from provider.');
   return text;
 }
 
@@ -160,6 +159,6 @@ async function callGemini(s: Settings, system: string, user: string): Promise<st
   const text = (data?.candidates?.[0]?.content?.parts ?? [])
     .map((p: { text?: string }) => p.text ?? '')
     .join('');
-  if (!text) throw new Error('Leere Antwort von Gemini.');
+  if (!text) throw new Error('Empty response from Gemini.');
   return text;
 }

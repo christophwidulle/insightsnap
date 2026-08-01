@@ -36,7 +36,7 @@ export async function extractTranscript(): Promise<TranscriptResult> {
       const captionMsg = captionErr instanceof Error ? captionErr.message : String(captionErr);
       const panelMsg = panelErr instanceof Error ? panelErr.message : String(panelErr);
       throw new Error(
-        `Transkript nicht verfügbar.\nCaption-Track: ${captionMsg}\nPanel: ${panelMsg}`,
+        `No transcript available.\nCaption track: ${captionMsg}\nPanel: ${panelMsg}`,
       );
     }
   }
@@ -44,9 +44,9 @@ export async function extractTranscript(): Promise<TranscriptResult> {
 
 async function fromInnerTube(): Promise<TranscriptResult> {
   const videoId = extractVideoId(location.href);
-  if (!videoId) throw new Error('Keine Video-ID in der URL.');
+  if (!videoId) throw new Error('No video ID in the URL.');
 
-  let lastErr = 'InnerTube-Caption-Abruf fehlgeschlagen.';
+  let lastErr = 'InnerTube caption request failed.';
   for (const client of INNERTUBE_CLIENTS) {
     let player: PlayerResponse;
     try {
@@ -58,14 +58,14 @@ async function fromInnerTube(): Promise<TranscriptResult> {
 
     const tracks = player.captions?.playerCaptionsTracklistRenderer?.captionTracks ?? [];
     if (tracks.length === 0) {
-      lastErr = 'Keine Untertitel-Spuren im Video.';
+      lastErr = 'Video has no caption tracks.';
       continue;
     }
 
     const preferred = pickTrack(tracks);
     const segments = await fetchSegments(preferred.baseUrl);
     if (segments.length === 0) {
-      lastErr = `Caption-Response leer (${preferred.languageCode ?? '?'}, ${client.clientName}).`;
+      lastErr = `Empty caption response (${preferred.languageCode ?? '?'}, ${client.clientName}).`;
       continue;
     }
 
@@ -234,8 +234,8 @@ function fromPanel(): TranscriptResult {
   const segments = readPanelSegments();
   if (segments.length === 0) {
     throw new Error(
-      'Transkript-Panel-DOM nicht gefunden. Panel offen? Bei "Transkript anzeigen" klicken und ' +
-        'kurz warten, bis Segmente geladen sind.',
+      'Transcript panel not found in the DOM. Open it via "Show transcript" and wait for the ' +
+        'segments to load, then try again.',
     );
   }
 

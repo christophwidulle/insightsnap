@@ -16,9 +16,9 @@ interface Props {
 
 // Never report the full length silently when only a prefix was sent to the model.
 function charCount({ fullText }: TranscriptResult): string {
-  const total = fullText.length.toLocaleString('de-DE');
-  if (fullText.length <= MAX_TRANSCRIPT_CHARS) return `${total} Zeichen`;
-  return `${MAX_TRANSCRIPT_CHARS.toLocaleString('de-DE')} von ${total} Zeichen (gekürzt)`;
+  const total = fullText.length.toLocaleString();
+  if (fullText.length <= MAX_TRANSCRIPT_CHARS) return `${total} chars`;
+  return `${MAX_TRANSCRIPT_CHARS.toLocaleString()} of ${total} chars (truncated)`;
 }
 
 export function Dialog({
@@ -40,7 +40,7 @@ export function Dialog({
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      // ponytail: kein Fallback – Clipboard-API ist auf https/Nutzergeste immer da
+      // ponytail: no fallback — the clipboard API is always there on https with a gesture
     }
   };
 
@@ -54,18 +54,14 @@ export function Dialog({
           </div>
           <div className="is-actions">
             {status === 'done' && (
-              <button
-                type="button"
-                onClick={copy}
-                title={copied ? 'Kopiert' : 'Text kopieren'}
-              >
+              <button type="button" onClick={copy} title={copied ? 'Copied' : 'Copy text'}>
                 {copied ? '✓' : '⧉'}
               </button>
             )}
-            <button type="button" onClick={onOpenOptions} title="Einstellungen">
+            <button type="button" onClick={onOpenOptions} title="Options">
               ⚙
             </button>
-            <button type="button" onClick={onClose} title="Schliessen">
+            <button type="button" onClick={onClose} title="Close">
               ✕
             </button>
           </div>
@@ -83,10 +79,10 @@ export function Dialog({
               <p>{message}</p>
               <div className="is-row">
                 <button type="button" onClick={onRetry}>
-                  Erneut versuchen
+                  Try again
                 </button>
                 <button type="button" onClick={onOpenOptions}>
-                  Einstellungen öffnen
+                  Open options
                 </button>
               </div>
             </div>
@@ -101,11 +97,11 @@ export function Dialog({
         {transcript && status === 'done' && (
           <footer className="is-footer">
             <span>
-              Quelle: {transcript.source === 'caption-track' ? 'Caption-Track' : 'Transkript-Panel'}
+              Source: {transcript.source === 'caption-track' ? 'caption track' : 'transcript panel'}
               {transcript.language && ` · ${transcript.language}`} · {charCount(transcript)}
             </span>
             <button type="button" className="is-rerun" onClick={onRetry}>
-              Neu analysieren
+              Re-analyze
             </button>
           </footer>
         )}

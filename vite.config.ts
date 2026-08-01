@@ -10,9 +10,8 @@ export default defineConfig({
     strictPort: true,
     hmr: { port: 5173 },
   },
-  // ponytail: keine Sourcemaps im Prod-Build — sie landen sonst als
-  // web_accessible_resources im Manifest und blähen das Release-ZIP auf.
-  // Dev-Server liefert weiterhin inline Maps.
+  // ponytail: no sourcemaps in the prod build — they end up as web_accessible_resources
+  // in the manifest and bloat the release zip. The dev server still serves inline maps.
   build: {
     target: 'esnext',
   },

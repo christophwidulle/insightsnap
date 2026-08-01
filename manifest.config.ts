@@ -17,7 +17,7 @@ export default defineManifest({
   description: pkg.description,
   icons: ICONS,
   action: {
-    default_title: 'InsightSnap – Einstellungen öffnen',
+    default_title: 'InsightSnap – open options',
     default_icon: ICONS,
   },
   options_page: 'src/options/index.html',

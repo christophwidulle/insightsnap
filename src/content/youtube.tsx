@@ -35,7 +35,7 @@ function ensureButton() {
   const btn = document.createElement('button');
   btn.id = BUTTON_ID;
   btn.type = 'button';
-  btn.title = 'InsightSnap – Video analysieren';
+  btn.title = 'InsightSnap – analyze this video';
   btn.textContent = '✨ InsightSnap';
   Object.assign(btn.style, {
     marginLeft: '8px',
@@ -84,8 +84,8 @@ interface Analysis {
   transcript?: TranscriptResult;
 }
 
-// Per-video result cache. Survives dialog close and SPA navigation; the analysis
-// keeps running in the background and the result is shown on reopen.
+// Per-video result cache. Survives dialog close and SPA navigation; the analysis keeps
+// running in the background and the result is shown on reopen.
 // ponytail: in-memory only — lost on tab reload; use chrome.storage.session if that hurts.
 const analyses = new Map<string, Analysis>();
 let dialogOpen = false;
@@ -129,7 +129,7 @@ function rerunAnalysis() {
 }
 
 async function runAnalysis(videoId: string) {
-  setAnalysis(videoId, { status: 'loading', message: 'Transkript wird geladen…' });
+  setAnalysis(videoId, { status: 'loading', message: 'Loading transcript…' });
 
   let transcript: TranscriptResult;
   try {
@@ -144,7 +144,7 @@ async function runAnalysis(videoId: string) {
 
   setAnalysis(videoId, {
     status: 'loading',
-    message: `Transkript: ${transcript.fullText.length.toLocaleString('de-DE')} Zeichen. Sende an LLM…`,
+    message: `Transcript: ${transcript.fullText.length.toLocaleString()} chars. Sending to the model…`,
     transcript,
   });
 
@@ -161,7 +161,7 @@ async function runAnalysis(videoId: string) {
     } else {
       setAnalysis(videoId, {
         status: 'error',
-        message: response.error ?? 'Unbekannter Fehler.',
+        message: response.error ?? 'Unknown error.',
         transcript,
       });
     }
@@ -189,19 +189,19 @@ function openOptions() {
   });
 }
 
-// Nach einem Extension-Reload/-Update bleibt das Content-Script im offenen Tab zurück:
-// Chrome entfernt dann chrome.runtime, sendMessage würde mit einem nackten
-// "Cannot read properties of undefined" sterben. chrome.runtime.id ist der Liveness-Check.
+// After an extension reload or update the content script is orphaned in open tabs:
+// Chrome strips chrome.runtime, so sendMessage would die with a bare
+// "Cannot read properties of undefined". chrome.runtime.id is the liveness check.
+const RELOADED = 'The extension was reloaded. Please refresh the page (F5).';
+
 async function send<T>(message: RuntimeMessage): Promise<T> {
-  if (!chrome?.runtime?.id) {
-    throw new Error('Extension wurde neu geladen. Bitte die Seite neu laden (F5).');
-  }
+  if (!chrome?.runtime?.id) throw new Error(RELOADED);
   try {
     return (await chrome.runtime.sendMessage(message)) as T;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.includes('context invalidated') || msg.includes('Receiving end does not exist')) {
-      throw new Error('Extension wurde neu geladen. Bitte die Seite neu laden (F5).');
+      throw new Error(RELOADED);
     }
     throw err;
   }

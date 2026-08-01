@@ -13,7 +13,7 @@ const PROVIDERS: { value: LLMProvider; label: string }[] = [
   { value: 'anthropic', label: 'Anthropic Claude' },
   { value: 'openai', label: 'OpenAI' },
   { value: 'gemini', label: 'Google Gemini' },
-  { value: 'openai-compatible', label: 'OpenAI-kompatibel (Custom URL)' },
+  { value: 'openai-compatible', label: 'OpenAI-compatible (custom URL)' },
 ];
 
 // Chrome match patterns carry no port, so http://localhost:11434 has to collapse to
@@ -40,7 +40,7 @@ export function Options() {
 
   const { provider, apiKey, baseUrl } = settings;
 
-  // Debounced, damit das Tippen im API-Key-Feld nicht pro Zeichen eine Anfrage auslöst.
+  // Debounced so typing in the API key field does not fire a request per keystroke.
   useEffect(() => {
     let alive = true;
     const timer = setTimeout(() => void fetchModels(() => alive), 500);
@@ -57,8 +57,8 @@ export function Options() {
       setGrant(null);
       setModelNote(
         provider === 'openai-compatible'
-          ? 'Base-URL eintragen – dann werden die Modelle geladen.'
-          : 'API-Key eintragen – dann werden die Modelle geladen.',
+          ? 'Enter a base URL to load the model list.'
+          : 'Enter an API key to load the model list.',
       );
       return;
     }
@@ -70,22 +70,22 @@ export function Options() {
       if (!alive()) return;
       setModels([]);
       setGrant(target);
-      setModelNote(`Zugriff auf ${target.host} noch nicht erteilt.`);
+      setModelNote(`Access to ${target.host} has not been granted yet.`);
       return;
     }
     setGrant(null);
 
-    setModelNote('Lade Modelle…');
+    setModelNote('Loading models…');
     try {
       const list = await listModels({ ...DEFAULT_SETTINGS, provider, apiKey, baseUrl });
       if (!alive()) return;
       setModels(list);
-      setModelNote(list.length > 0 ? null : 'Provider meldet keine Modelle.');
+      setModelNote(list.length > 0 ? null : 'Provider reports no models.');
     } catch (err) {
       if (!alive()) return;
       setModels([]);
       setModelNote(
-        `Modelle nicht ladbar: ${err instanceof Error ? err.message : String(err)} – Modell manuell eintragen.`,
+        `Could not load models: ${err instanceof Error ? err.message : String(err)} – enter the model name manually.`,
       );
     }
   }
@@ -100,7 +100,7 @@ export function Options() {
 
   async function onSave() {
     await saveSettings(settings);
-    setStatus('Gespeichert.');
+    setStatus('Saved.');
     setTimeout(() => setStatus(null), 1500);
   }
 
@@ -116,7 +116,7 @@ export function Options() {
         setGrant(null);
         void fetchModels();
       } else {
-        setModelNote(`Zugriff auf ${grant.host} abgelehnt.`);
+        setModelNote(`Access to ${grant.host} was denied.`);
       }
     });
   }
@@ -127,7 +127,7 @@ export function Options() {
     <main className="options">
       <header>
         <h1>InsightSnap</h1>
-        <p>Konfiguriere LLM-Provider und Prompt für die YouTube-Analyse.</p>
+        <p>Configure the LLM provider and prompt used for YouTube analysis.</p>
       </header>
 
       <section>
@@ -150,7 +150,7 @@ export function Options() {
           {models.length > 0 ? (
             <select value={settings.model} onChange={(e) => update('model', e.target.value)}>
               {!models.includes(settings.model) && (
-                <option value={settings.model}>{settings.model || '– bitte wählen –'}</option>
+                <option value={settings.model}>{settings.model || '– select a model –'}</option>
               )}
               {models.map((m) => (
                 <option key={m} value={m}>
@@ -162,18 +162,18 @@ export function Options() {
             <input
               type="text"
               value={settings.model}
-              placeholder={DEFAULT_MODELS[settings.provider] || 'z.B. gpt-5'}
+              placeholder={DEFAULT_MODELS[settings.provider] || 'e.g. gpt-5'}
               onChange={(e) => update('model', e.target.value)}
             />
           )}
           {modelNote && <span className="hint">{modelNote}</span>}
           <button type="button" className="link" onClick={() => void fetchModels()}>
-            Modelle neu laden
+            Reload models
           </button>
         </label>
 
         <label>
-          <span>API-Key</span>
+          <span>API key</span>
           <input
             type="password"
             value={settings.apiKey}
@@ -185,7 +185,7 @@ export function Options() {
 
         {isCustom && (
           <label>
-            <span>Base-URL</span>
+            <span>Base URL</span>
             <input
               type="url"
               value={settings.baseUrl}
@@ -195,11 +195,11 @@ export function Options() {
             {grant && (
               <>
                 <span className="hint">
-                  InsightSnap darf nur die eingebauten Provider erreichen. Für einen eigenen
-                  Endpoint musst du den Zugriff einmalig freigeben.
+                  InsightSnap may only reach the built-in providers. A custom endpoint needs a
+                  one-time access grant.
                 </span>
                 <button type="button" className="grant" onClick={requestGrant}>
-                  Zugriff auf {grant.host} erlauben
+                  Grant access to {grant.host}
                 </button>
               </>
             )}
@@ -214,14 +214,14 @@ export function Options() {
             onChange={(e) => update('prompt', e.target.value)}
           />
           <button type="button" className="link" onClick={resetPrompt}>
-            Auf Default zurücksetzen
+            Reset to default
           </button>
         </label>
       </section>
 
       <footer>
         <button type="button" onClick={onSave}>
-          Speichern
+          Save
         </button>
         {status && <span className="status">{status}</span>}
       </footer>

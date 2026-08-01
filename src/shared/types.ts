@@ -9,8 +9,8 @@ export interface Settings {
 }
 
 export const DEFAULT_PROMPT =
-  'Erstelle mir eine strukturierte Zusammenfassung mit den Key Learnings und Takeaways. ' +
-  'Ich möchte das Maximale aus dem Video mitnehmen an Erkenntnissen.';
+  'Write a structured summary of this video with the key learnings and takeaways. ' +
+  'I want to get the maximum insight out of it. Reply in the language of the transcript.';
 
 export const DEFAULT_MODELS: Record<LLMProvider, string> = {
   anthropic: 'claude-sonnet-4-6',
