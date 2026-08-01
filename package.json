@@ -3,7 +3,22 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Chrome/Edge extension for on-page insights and analysis",
+  "description": "Chrome/Edge extension that summarizes YouTube videos with the LLM of your choice",
+  "license": "MIT",
+  "author": "Christoph Dick <mail@christophdick.de>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/christophwidulle/insightsnap.git"
+  },
+  "homepage": "https://github.com/christophwidulle/insightsnap#readme",
+  "bugs": "https://github.com/christophwidulle/insightsnap/issues",
+  "keywords": [
+    "chrome-extension",
+    "youtube",
+    "llm",
+    "summarization",
+    "manifest-v3"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
