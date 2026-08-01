@@ -1,96 +1,120 @@
 # InsightSnap
 
-Chrome/Edge-Erweiterung, die YouTube-Videos zusammenfasst: Transkript ziehen, an ein
-LLM deiner Wahl schicken, Ergebnis direkt auf der Videoseite anzeigen.
+*[Deutsche Version](README.de.md)*
 
-Auf jeder YouTube-Watch-Seite erscheint neben „Teilen“/„Speichern“ ein Button
-**✨ InsightSnap**. Klick darauf → Dialog mit der Analyse.
+Chrome/Edge extension that summarizes YouTube videos: it pulls the transcript, sends it to
+an LLM of your choice, and renders the result right on the video page.
 
-## Installation (ohne Bauen)
+On every YouTube watch page a **✨ InsightSnap** button appears next to *Share* / *Save*.
+Click it and the analysis opens in a dialog.
 
-1. ZIP der aktuellen Version herunterladen: [Releases](../../releases) →
-   `insightsnap-<version>.zip`
-2. ZIP entpacken (Ordner an einen dauerhaften Ort legen — Chrome lädt die Extension
-   bei jedem Start von dort).
-3. `chrome://extensions` öffnen (Edge: `edge://extensions`).
-4. Oben rechts **Entwicklermodus** einschalten.
-5. **Entpackte Erweiterung laden** → den entpackten Ordner auswählen.
+<!-- Drop a screenshot at docs/screenshot.png and uncomment the next line.
+![InsightSnap dialog on a YouTube watch page](docs/screenshot.png)
+-->
 
-Zum Aktualisieren: neues ZIP entpacken, alten Ordner ersetzen, in
-`chrome://extensions` auf **⟳ Neu laden** klicken. Offene YouTube-Tabs danach mit
-F5 neu laden.
+## Install (no build required)
 
-## Einrichten
+1. Download the current release: [Releases](../../releases) → `insightsnap-<version>.zip`
+2. Unzip it and put the folder somewhere permanent — Chrome loads the extension from that
+   path on every start.
+3. Open `chrome://extensions` (Edge: `edge://extensions`).
+4. Turn on **Developer mode** in the top right.
+5. **Load unpacked** → select the unzipped folder.
 
-Auf das Extension-Icon klicken (oder im Dialog auf ⚙) → Optionsseite.
+To update: unzip the new release, replace the old folder, hit **⟳ Reload** in
+`chrome://extensions`, then refresh open YouTube tabs with F5.
 
-| Feld | Bedeutung |
-|------|-----------|
-| **Provider** | Anthropic Claude, OpenAI, Google Gemini oder OpenAI-kompatibel |
-| **Model** | Dropdown, das die verfügbaren Modelle beim Provider abfragt, sobald ein API-Key eingetragen ist. Lädt der Provider keine Liste, wird daraus ein Freitextfeld. |
-| **API-Key** | Wird nur lokal in `chrome.storage.local` gespeichert |
-| **Base-URL** | Nur bei „OpenAI-kompatibel“, z.B. `https://api.example.com/v1` |
-| **Prompt** | Systemprompt für die Analyse, per Button auf den Default zurücksetzbar |
+## Setup
 
-**Speichern** nicht vergessen.
+Click the extension icon (or ⚙ in the dialog) to open the options page.
 
-API-Keys gibt es bei
+| Field | Meaning |
+|-------|---------|
+| **Provider** | Anthropic Claude, OpenAI, Google Gemini, or OpenAI-compatible |
+| **Model** | Dropdown that queries the provider for available models once an API key is set. If the provider serves no list, it falls back to a free-text field. |
+| **API key** | Stored locally in `chrome.storage.local`, nowhere else |
+| **Base URL** | Only for *OpenAI-compatible*, e.g. `https://api.example.com/v1` |
+| **Prompt** | System prompt for the analysis, resettable to the default |
+
+Don't forget **Save**.
+
+Get API keys from
 [Anthropic](https://console.anthropic.com/settings/keys),
-[OpenAI](https://platform.openai.com/api-keys) und
+[OpenAI](https://platform.openai.com/api-keys), or
 [Google AI Studio](https://aistudio.google.com/apikey).
 
-## Benutzen
+### Custom endpoints
 
-1. Beliebiges YouTube-Video öffnen.
-2. **✨ InsightSnap** klicken.
-3. Die Extension holt das Transkript (Untertitel-Track, ersatzweise das
-   Transkript-Panel), schickt es mit deinem Prompt an den Provider und rendert die
-   Antwort als Markdown.
-4. **Neu analysieren** im Fuß des Dialogs wiederholt den Durchlauf, z.B. nach einer
-   Prompt-Änderung.
+The extension ships with host permissions for the three built-in providers only. If you
+point it at your own OpenAI-compatible endpoint — a proxy, or a local runtime like Ollama
+or LM Studio — the options page shows a **Grant access to `<host>`** button. One click,
+and Chrome asks you to confirm access to that host. Plain `http://` works for `localhost`
+and `127.0.0.1`; everything else has to be `https://`.
 
-Die Fußzeile zeigt an, woher das Transkript kam, in welcher Sprache und wie lang es war.
+## Usage
 
-## Datenschutz
+1. Open any YouTube video.
+2. Click **✨ InsightSnap**.
+3. The extension fetches the transcript (caption track, falling back to the transcript
+   panel), sends it with your prompt to the provider, and renders the reply as Markdown.
+4. **Re-analyze** at the bottom of the dialog runs it again, e.g. after changing the prompt.
 
-- API-Key und Prompt liegen ausschließlich lokal im Browserprofil.
-- Transkript und Videotitel gehen an den von dir konfigurierten Provider — sonst nirgendwohin.
-- Kein Tracking, kein eigenes Backend.
+The footer shows where the transcript came from, in which language, and how long it was.
 
-## Wenn etwas nicht geht
+Transcripts are capped at 400,000 characters before being sent — a runaway guard for
+multi-hour streams. When it kicks in, the footer says so explicitly.
 
-**„Kein Transkript gefunden“** — Das Video hat keine Untertitel. InsightSnap
-transkribiert nicht selbst, ohne Untertitel geht nichts.
+## Privacy
 
-**„Extension wurde neu geladen. Bitte die Seite neu laden (F5).“** — Genau das:
-nach einem Update der Extension sind offene Tabs abgekoppelt.
+- API key and prompt live only in your local browser profile.
+- Transcript and video title go to the provider you configured — nowhere else.
+- The transcript is fetched from YouTube's InnerTube API with your session cookies
+  (`credentials: 'include'`), same as the page itself does. It never leaves the browser
+  except as part of the request to your chosen provider.
+- No tracking, no backend of our own.
 
-**Button erscheint nicht** — Nach einem Update in `chrome://extensions` auf ⟳
-klicken, dann den Tab neu laden.
+## Troubleshooting
 
-**CORS-Fehler beim Analysieren** (`No 'Access-Control-Allow-Origin' header`) — Chrome
-hält die Host-Berechtigung zurück. In `chrome://extensions` → InsightSnap →
-**Details** → **Websitezugriff** auf *Auf allen Websites* stellen.
+**"No transcript available"** — The video has no captions. InsightSnap does not transcribe
+audio itself; without captions there is nothing to work with.
 
-**HTTP 401/403 vom Provider** — API-Key falsch, abgelaufen oder ohne Guthaben.
+**"The extension was reloaded. Please refresh the page (F5)."** — Exactly that: after an
+extension update, already-open tabs are disconnected.
 
-## Selbst bauen
+**Button does not appear** — After an update, click ⟳ in `chrome://extensions`, then
+reload the tab.
 
-Node 20+ vorausgesetzt.
+**HTTP 401/403 from the provider** — API key wrong, expired, or out of credit.
+
+**HTTP 400 with `max_tokens`** — InsightSnap requests up to 8192 output tokens. Legacy
+models capped at 4096 (e.g. `claude-3-haiku`) reject that; pick a current model.
+
+## Build it yourself
+
+Requires Node 20+.
 
 ```bash
 npm install
-npm run build      # Ausgabe in dist/ — dieser Ordner wird als Extension geladen
-npm run dev        # Dev-Server mit Hot-Reload, dist/ wird laufend aktualisiert
-npm run release    # baut und packt dist/ zu insightsnap-<version>.zip
+npm run build      # output in dist/ — load that folder as the extension
+npm run dev        # dev server with hot reload, keeps dist/ up to date
+npm test           # transcript parser tests (node --test, no extra dependency)
+npm run typecheck
+npm run icons      # regenerate PNGs from assets/icon.svg (macOS, uses sips)
+npm run release    # build and pack dist/ into insightsnap-<version>.zip
 ```
 
 Stack: Vite + CRXJS, React 19, TypeScript, Manifest V3.
 
 ```
 src/
-  background/   Service Worker — führt die LLM-Aufrufe aus
-  content/      YouTube-Content-Script + Dialog (Shadow DOM)
-  options/      Optionsseite
-  shared/       Provider-Anbindung, Transkript-Extraktion, Settings, Typen
+  background/   service worker — performs the LLM calls
+  content/      YouTube content script + dialog (shadow DOM)
+  options/      options page
+  shared/       provider bindings, transcript extraction, settings, types
+test/           parser tests
+assets/         icon source (SVG)
 ```
+
+## License
+
+[MIT](LICENSE)
