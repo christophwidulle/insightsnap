@@ -26,18 +26,26 @@ Auf das Extension-Icon klicken (oder im Dialog auf ⚙) → Optionsseite.
 
 | Feld | Bedeutung |
 |------|-----------|
-| **Provider** | Anthropic Claude, OpenAI, Google Gemini oder OpenAI-kompatibel |
+| **Provider** | Anthropic Claude, OpenAI, Google Gemini, AWS Bedrock oder OpenAI-kompatibel |
 | **Model** | Dropdown, das die verfügbaren Modelle beim Provider abfragt, sobald ein API-Key eingetragen ist. Lädt der Provider keine Liste, wird daraus ein Freitextfeld. |
 | **API-Key** | Wird nur lokal in `chrome.storage.local` gespeichert |
+| **Region** | Nur bei „AWS Bedrock“, daraus wird `https://bedrock-mantle.{region}.api.aws/v1` |
 | **Base-URL** | Nur bei „OpenAI-kompatibel“, z.B. `https://api.example.com/v1` |
+| **Zugriff** | Erscheint bei Bedrock und eigenen Endpoints: deren Host steht nicht im Manifest und muss einmalig freigegeben werden |
 | **Prompt** | Systemprompt für die Analyse, per Button auf den Default zurücksetzbar |
 
 **Speichern** nicht vergessen.
 
 API-Keys gibt es bei
 [Anthropic](https://console.anthropic.com/settings/keys),
-[OpenAI](https://platform.openai.com/api-keys) und
-[Google AI Studio](https://aistudio.google.com/apikey).
+[OpenAI](https://platform.openai.com/api-keys),
+[Google AI Studio](https://aistudio.google.com/apikey) und
+[AWS Bedrock](https://docs.aws.amazon.com/bedrock/latest/userguide/api-keys.html).
+
+Bedrock spricht auf dem `bedrock-mantle`-Endpoint das OpenAI-Chat-Completions-Format
+und akzeptiert den Bedrock-API-Key als Bearer-Token — kein SigV4 nötig. Modell-IDs
+tragen dort ein Präfix, z.B. `us.anthropic.claude-sonnet-4-6`; die Modell-Liste füllt
+das Dropdown automatisch.
 
 ## Benutzen
 
