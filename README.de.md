@@ -99,7 +99,7 @@ Modell wählen.
 
 ## Selbst bauen
 
-Node 20+ vorausgesetzt.
+Node 22.18+ vorausgesetzt (`npm test` nutzt natives TypeScript-Type-Stripping).
 
 ```bash
 npm install

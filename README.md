@@ -91,7 +91,7 @@ models capped at 4096 (e.g. `claude-3-haiku`) reject that; pick a current model.
 
 ## Build it yourself
 
-Requires Node 20+.
+Requires Node 22.18+ (`npm test` relies on native TypeScript type stripping).
 
 ```bash
 npm install
