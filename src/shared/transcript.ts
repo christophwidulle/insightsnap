@@ -165,7 +165,7 @@ interface Json3Event {
   segs?: { utf8?: string }[];
 }
 
-function parseJson3(body: string): TranscriptSegment[] {
+export function parseJson3(body: string): TranscriptSegment[] {
   let data: { events?: Json3Event[] };
   try {
     data = JSON.parse(body);
@@ -185,6 +185,8 @@ function parseJson3(body: string): TranscriptSegment[] {
     .filter((seg) => seg.text.length > 0);
 }
 
+// ponytail: untested — needs DOMParser, which Node has no built-in for. Pulling in
+// jsdom just for this is not worth it; the json3 path is the one that actually runs.
 function parseTimedTextXml(xml: string): TranscriptSegment[] {
   if (!xml.trim().startsWith('<')) return [];
   const doc = new DOMParser().parseFromString(xml, 'text/xml');
@@ -216,7 +218,7 @@ function parseTimedTextXml(xml: string): TranscriptSegment[] {
   return segments;
 }
 
-function decodeEntities(input: string): string {
+export function decodeEntities(input: string): string {
   return input
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
@@ -321,7 +323,7 @@ function extractFromGenericPanel(): TranscriptSegment[] {
   return result;
 }
 
-function parseTimestamp(stamp: string): number {
+export function parseTimestamp(stamp: string): number {
   const parts = stamp.split(':').map(Number);
   if (parts.some(isNaN)) return 0;
   return parts.reduce((acc, n) => acc * 60 + n, 0);

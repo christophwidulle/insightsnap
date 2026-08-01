@@ -17,5 +17,8 @@
     "noEmit": true,
     "types": ["chrome", "vite/client"]
   },
+  // test/ is deliberately excluded: it runs under `node --test`, which needs Node globals
+  // and .ts import extensions that the browser build must not allow. Running the tests
+  // verifies them more thoroughly than tsc would.
   "include": ["src", "vite.config.ts", "manifest.config.ts"]
 }
