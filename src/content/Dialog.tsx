@@ -36,7 +36,10 @@ export function Dialog({
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(message);
+      const link = transcript
+        ? `[${transcript.title || 'Video'}](https://www.youtube.com/watch?v=${transcript.videoId})\n\n`
+        : '';
+      await navigator.clipboard.writeText(link + message);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
