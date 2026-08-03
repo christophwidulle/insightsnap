@@ -31,15 +31,17 @@ export function Dialog({
   onRetry,
 }: Props) {
   const [copied, setCopied] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   if (!open) return null;
 
-  const copy = async () => {
+  const copy = async (text: string) => {
+    setMenuOpen(false);
     try {
       const link = transcript
         ? `[${transcript.title || 'Video'}](https://www.youtube.com/watch?v=${transcript.videoId})\n\n`
         : '';
-      await navigator.clipboard.writeText(link + message);
+      await navigator.clipboard.writeText(link + text);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
@@ -57,9 +59,41 @@ export function Dialog({
           </div>
           <div className="is-actions">
             {status === 'done' && (
-              <button type="button" onClick={copy} title={copied ? 'Copied' : 'Copy text'}>
-                {copied ? '✓' : '⧉'}
-              </button>
+              <div
+                className="is-split"
+                onBlur={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget)) setMenuOpen(false);
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => copy(message)}
+                  title={copied ? 'Copied' : 'Copy summary'}
+                >
+                  {copied ? '✓' : '⧉'}
+                </button>
+                {transcript && (
+                  <button
+                    type="button"
+                    className="is-caret"
+                    aria-expanded={menuOpen}
+                    aria-label="More copy options"
+                    onClick={() => setMenuOpen(!menuOpen)}
+                  >
+                    ▾
+                  </button>
+                )}
+                {menuOpen && transcript && (
+                  <div className="is-menu">
+                    <button type="button" onClick={() => copy(message)}>
+                      Copy summary
+                    </button>
+                    <button type="button" onClick={() => copy(transcript.fullText)}>
+                      Copy transcript
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
             <button type="button" onClick={onOpenOptions} title="Options">
               ⚙

@@ -92,6 +92,45 @@
   background: rgba(128, 128, 128, 0.2);
 }
 
+.is-split {
+  position: relative;
+  display: flex;
+}
+
+.is-actions .is-caret {
+  width: 18px;
+  font-size: 11px;
+}
+
+.is-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 1;
+  min-width: 150px;
+  padding: 4px;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 8px;
+  background: #2a2a2a;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+@media (prefers-color-scheme: light) {
+  .is-menu {
+    background: #ffffff;
+  }
+}
+
+.is-actions .is-menu button {
+  width: 100%;
+  height: auto;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  justify-content: flex-start;
+  white-space: nowrap;
+}
+
 .is-body {
   padding: 28px 32px;
   overflow-y: auto;
