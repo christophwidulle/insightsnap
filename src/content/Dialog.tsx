@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { markdownFilename, withVideoLink } from '../shared/markdown';
+import { markdownFilename, withFrontMatter, withVideoLink } from '../shared/markdown';
 import { MAX_TRANSCRIPT_CHARS } from '../shared/types';
 import type { TranscriptResult } from '../shared/types';
 
@@ -50,7 +50,7 @@ export function Dialog({
   // A blob URL plus a download anchor keeps this in the content script — no
   // chrome.downloads permission, no round trip through the service worker.
   const save = () => {
-    const blob = new Blob([withVideoLink(message, transcript)], {
+    const blob = new Blob([withFrontMatter(message, transcript)], {
       type: 'text/markdown;charset=utf-8',
     });
     const url = URL.createObjectURL(blob);

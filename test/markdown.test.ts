@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { markdownFilename, withVideoLink } from '../src/shared/markdown.ts';
+import { markdownFilename, withFrontMatter, withVideoLink } from '../src/shared/markdown.ts';
 import type { TranscriptResult } from '../src/shared/types.ts';
 
 function transcript(overrides: Partial<TranscriptResult> = {}): TranscriptResult {
@@ -25,6 +25,36 @@ test('withVideoLink prepends a markdown link to the video', () => {
 test('withVideoLink falls back to a generic title and passes text through untouched', () => {
   assert.match(withVideoLink('x', transcript({ title: '' })), /^\[Video\]\(/);
   assert.equal(withVideoLink('# Summary'), '# Summary');
+});
+
+test('withFrontMatter puts title, url and language above the summary', () => {
+  assert.equal(
+    withFrontMatter('# Summary', transcript()),
+    [
+      '---',
+      'title: "Never Gonna Give You Up"',
+      'url: https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      'language: "en"',
+      '---',
+      '',
+      '# Summary',
+    ].join('\n'),
+  );
+});
+
+test('withFrontMatter leaves out an unknown language', () => {
+  const out = withFrontMatter('x', transcript({ language: '' }));
+  assert.equal(out.includes('language:'), false);
+});
+
+test('withFrontMatter escapes quotes and flattens the title', () => {
+  const out = withFrontMatter('x', transcript({ title: 'He said: "hi"\nagain \\ here' }));
+  assert.match(out, /^title: "He said: \\"hi\\" again \\\\ here"$/m);
+});
+
+test('withFrontMatter falls back to a generic title and passes text through untouched', () => {
+  assert.match(withFrontMatter('x', transcript({ title: '' })), /^title: "Video"$/m);
+  assert.equal(withFrontMatter('# Summary'), '# Summary');
 });
 
 test('markdownFilename keeps the title readable', () => {
