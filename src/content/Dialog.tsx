@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { markdownFilename, withVideoLink } from '../shared/markdown';
 import { MAX_TRANSCRIPT_CHARS } from '../shared/types';
 import type { TranscriptResult } from '../shared/types';
 
@@ -38,15 +39,29 @@ export function Dialog({
   const copy = async (text: string) => {
     setMenuOpen(false);
     try {
-      const link = transcript
-        ? `[${transcript.title || 'Video'}](https://www.youtube.com/watch?v=${transcript.videoId})\n\n`
-        : '';
-      await navigator.clipboard.writeText(link + text);
+      await navigator.clipboard.writeText(withVideoLink(text, transcript));
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
       // ponytail: no fallback — the clipboard API is always there on https with a gesture
     }
+  };
+
+  // A blob URL plus a download anchor keeps this in the content script — no
+  // chrome.downloads permission, no round trip through the service worker.
+  const save = () => {
+    const blob = new Blob([withVideoLink(message, transcript)], {
+      type: 'text/markdown;charset=utf-8',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = markdownFilename(transcript);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    // Chrome takes over the blob synchronously on click, so the next task can free it.
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   };
 
   return (
@@ -94,6 +109,11 @@ export function Dialog({
                   </div>
                 )}
               </div>
+            )}
+            {status === 'done' && (
+              <button type="button" onClick={save} title="Save as Markdown">
+                ⇩
+              </button>
             )}
             <button type="button" onClick={onOpenOptions} title="Options">
               ⚙
