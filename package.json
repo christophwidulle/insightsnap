@@ -12,6 +12,9 @@
   },
   "homepage": "https://github.com/christophwidulle/insightsnap#readme",
   "bugs": "https://github.com/christophwidulle/insightsnap/issues",
+  "engines": {
+    "node": ">=22.18"
+  },
   "keywords": [
     "chrome-extension",
     "youtube",
