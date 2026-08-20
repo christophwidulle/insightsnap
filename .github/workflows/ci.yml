@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
 
+# Fork pull requests run with the default token; it only ever needs to read the code.
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest

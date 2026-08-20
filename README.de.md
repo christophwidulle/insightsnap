@@ -1,5 +1,8 @@
 # InsightSnap
 
+[![CI](https://github.com/christophwidulle/insightsnap/actions/workflows/ci.yml/badge.svg)](https://github.com/christophwidulle/insightsnap/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 _[English version](README.md)_
 
 Chrome/Edge-Erweiterung, die YouTube-Videos zusammenfasst: Transkript ziehen, an ein
@@ -135,6 +138,19 @@ test/           Parser-Tests
 assets/         Icon-Quelle (SVG)
 ```
 
+## Mitmachen
+
+Fehlerberichte und Pull Requests sind willkommen — [CONTRIBUTING.md](CONTRIBUTING.md)
+beschreibt Setup und die Prüfungen, die CI ausführt. Sicherheitsprobleme gehören in die
+[vertrauliche Meldung](SECURITY.md), nicht in ein öffentliches Issue.
+
 ## Lizenz
 
 [MIT](LICENSE)
+
+Der Name „InsightSnap" und das Icon in `assets/` fallen nicht unter die MIT-Lizenz. Fork
+den Code gern, gib deinem Fork aber einen eigenen Namen.
+
+InsightSnap ist ein unabhängiges Projekt. Es steht in keiner Verbindung zu YouTube,
+Google oder einem der LLM-Anbieter, mit denen es sprechen kann, und wird von ihnen weder
+unterstützt noch gesponsert.
