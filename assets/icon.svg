@@ -4,7 +4,9 @@
       <stop offset="0" stop-color="#241b3d" />
       <stop offset="1" stop-color="#0f0b1c" />
     </linearGradient>
-    <linearGradient id="spark" x1="0" y1="0" x2="1" y2="1">
+    <!-- userSpaceOnUse so both shapes share one continuous ramp instead of each
+         restarting it inside its own bounding box. -->
+    <linearGradient id="spark" gradientUnits="userSpaceOnUse" x1="26" y1="26" x2="102" y2="102">
       <stop offset="0" stop-color="#c4a6ff" />
       <stop offset="1" stop-color="#7c5cff" />
     </linearGradient>
@@ -12,14 +14,13 @@
 
   <rect width="128" height="128" rx="28" fill="url(#bg)" />
 
-  <!-- Four-pointed sparkle, concave sides drawn with quadratic curves toward the center. -->
-  <path
-    d="M70 20 Q76 54 106 62 Q76 70 70 104 Q64 70 34 62 Q64 54 70 20 Z"
-    fill="url(#spark)"
-  />
-  <path
-    d="M33 82 Q35.5 96 46 99 Q35.5 102 33 116 Q30.5 102 20 99 Q30.5 96 33 82 Z"
-    fill="url(#spark)"
-    opacity="0.85"
-  />
+  <!-- Lucide `sparkles` (ISC), filled instead of stroked and scaled from its 24x24 grid
+       onto this canvas: translate(16,16) scale(4) puts the star's center on 64,64. The
+       icon's small upper-right cross is left out — it turns to mush at the 16px size. -->
+  <g transform="translate(16 16) scale(4)" fill="url(#spark)">
+    <path
+      d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"
+    />
+    <circle cx="4" cy="20" r="2" opacity="0.85" />
+  </g>
 </svg>

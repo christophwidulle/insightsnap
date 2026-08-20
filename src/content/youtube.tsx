@@ -1,4 +1,6 @@
+import type { CSSProperties } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
+import { Sparkles } from 'lucide-react';
 import { Dialog } from './Dialog';
 import { extractTranscript } from '../shared/transcript';
 import { MAX_TRANSCRIPT_CHARS } from '../shared/types';
@@ -10,6 +12,7 @@ const HOST_ID = 'insightsnap-host';
 
 let dialogRoot: Root | null = null;
 let dialogHost: HTMLDivElement | null = null;
+let triggerRoot: Root | null = null;
 
 function isWatchPage(href: string): boolean {
   try {
@@ -20,41 +23,69 @@ function isWatchPage(href: string): boolean {
   }
 }
 
+// The trigger sits in YouTube's own DOM, so it carries its styles inline. Rendering it
+// through React is what lets it share the Lucide icon set with the dialog.
+const TRIGGER_STYLE: CSSProperties = {
+  marginLeft: '8px',
+  padding: '0 16px',
+  height: '36px',
+  borderRadius: '18px',
+  border: 'none',
+  background: 'rgba(255,255,255,0.1)',
+  color: 'inherit',
+  font: 'inherit',
+  fontSize: '14px',
+  fontWeight: 500,
+  cursor: 'pointer',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '6px',
+};
+
+function Trigger() {
+  return (
+    <button
+      type="button"
+      title="InsightSnap – analyze this video"
+      style={TRIGGER_STYLE}
+      onClick={openDialog}
+    >
+      <Sparkles size={16} />
+      InsightSnap
+    </button>
+  );
+}
+
 function ensureButton() {
+  const existing = document.getElementById(BUTTON_ID);
+
   if (!isWatchPage(location.href)) {
-    document.getElementById(BUTTON_ID)?.remove();
+    if (existing) {
+      triggerRoot?.unmount();
+      triggerRoot = null;
+      existing.remove();
+    }
     return;
   }
-  if (document.getElementById(BUTTON_ID)) return;
+  if (existing) return;
 
   const anchor =
     document.querySelector('ytd-watch-metadata #actions') ??
     document.querySelector('ytd-watch-metadata #top-level-buttons-computed');
   if (!anchor) return;
 
-  const btn = document.createElement('button');
-  btn.id = BUTTON_ID;
-  btn.type = 'button';
-  btn.title = 'InsightSnap – analyze this video';
-  btn.textContent = '✨ InsightSnap';
-  Object.assign(btn.style, {
-    marginLeft: '8px',
-    padding: '0 16px',
-    height: '36px',
-    borderRadius: '18px',
-    border: 'none',
-    background: 'rgba(255,255,255,0.1)',
-    color: 'inherit',
-    font: 'inherit',
-    fontSize: '14px',
-    fontWeight: '500',
-    cursor: 'pointer',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '6px',
-  } satisfies Partial<CSSStyleDeclaration>);
-  btn.addEventListener('click', openDialog);
-  anchor.appendChild(btn);
+  // Reaching here with a root still set means a YouTube rerender dropped its host.
+  triggerRoot?.unmount();
+
+  const host = document.createElement('span');
+  host.id = BUTTON_ID;
+  // display:contents keeps the wrapper out of YouTube's flex row, so the button lays out
+  // exactly as it did when it was appended directly.
+  host.style.display = 'contents';
+  anchor.appendChild(host);
+
+  triggerRoot = createRoot(host);
+  triggerRoot.render(<Trigger />);
 }
 
 function ensureDialogHost(): { host: HTMLDivElement; shadow: ShadowRoot } {
