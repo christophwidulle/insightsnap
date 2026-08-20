@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Check, ChevronDown, Copy, Download, Settings, X } from 'lucide-react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { markdownFilename, withFrontMatter, withVideoLink } from '../shared/markdown';
@@ -85,7 +86,7 @@ export function Dialog({
                   onClick={() => copy(message)}
                   title={copied ? 'Copied' : 'Copy summary'}
                 >
-                  {copied ? '✓' : '⧉'}
+                  {copied ? <Check size={16} /> : <Copy size={16} />}
                 </button>
                 {transcript && (
                   <button
@@ -95,7 +96,7 @@ export function Dialog({
                     aria-label="More copy options"
                     onClick={() => setMenuOpen(!menuOpen)}
                   >
-                    ▾
+                    <ChevronDown size={14} />
                   </button>
                 )}
                 {menuOpen && transcript && (
@@ -112,14 +113,14 @@ export function Dialog({
             )}
             {status === 'done' && (
               <button type="button" onClick={save} title="Save as Markdown">
-                ⇩
+                <Download size={16} />
               </button>
             )}
             <button type="button" onClick={onOpenOptions} title="Options">
-              ⚙
+              <Settings size={16} />
             </button>
             <button type="button" onClick={onClose} title="Close">
-              ✕
+              <X size={16} />
             </button>
           </div>
         </header>
