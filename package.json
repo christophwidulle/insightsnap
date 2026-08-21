@@ -35,7 +35,7 @@
   },
   "dependencies": {
     "lucide-react": "^1.33.0",
-    "react": "^19.2.6",
+    "react": "^19.2.8",
     "react-dom": "^19.2.6",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1"
@@ -43,7 +43,7 @@
   "devDependencies": {
     "@crxjs/vite-plugin": "^2.4.0",
     "@types/chrome": "^0.1.42",
-    "@types/react": "^19.0.0",
+    "@types/react": "^19.2.18",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^6.0.2",
     "prettier": "^3.9.6",
