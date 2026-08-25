@@ -16,6 +16,14 @@ interface Props {
   onRetry: () => void;
 }
 
+// Error messages lead with a self-contained first line and may carry diagnostic detail
+// below it. Splitting there keeps the headline readable and the detail subdued; a
+// single-line message renders exactly as it did before.
+function splitError(message: string): { headline: string; details: string } {
+  const [headline, ...rest] = message.split('\n');
+  return { headline, details: rest.join('\n').trim() };
+}
+
 // Never report the full length silently when only a prefix was sent to the model.
 function charCount({ fullText }: TranscriptResult): string {
   const total = fullText.length.toLocaleString();
@@ -36,6 +44,8 @@ export function Dialog({
   const [menuOpen, setMenuOpen] = useState(false);
 
   if (!open) return null;
+
+  const { headline, details } = splitError(message);
 
   const copy = async (text: string) => {
     setMenuOpen(false);
@@ -134,7 +144,8 @@ export function Dialog({
           )}
           {status === 'error' && (
             <div className="is-error">
-              <p>{message}</p>
+              <p>{headline}</p>
+              {details && <p className="is-error-details">{details}</p>}
               <div className="is-row">
                 <button type="button" onClick={onRetry}>
                   Try again

@@ -1,6 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { decodeEntities, parseJson3, parseTimestamp } from '../src/shared/transcript.ts';
+import {
+  decodeEntities,
+  parseJson3,
+  parseTimestamp,
+  transcriptFailureMessage,
+} from '../src/shared/transcript.ts';
 
 test('parseJson3 joins segments, collapses whitespace and converts ms to seconds', () => {
   const body = JSON.stringify({
@@ -48,4 +53,17 @@ test('decodeEntities resolves named, decimal and hex references', () => {
 test('decodeEntities expands ampersands last so double encoding survives one pass', () => {
   assert.equal(decodeEntities('&amp;lt;b&amp;gt;'), '&lt;b&gt;');
   assert.equal(decodeEntities('Tom &amp; Jerry'), 'Tom & Jerry');
+});
+
+test('transcriptFailureMessage leads with a plain headline and lists both sources', () => {
+  const msg = transcriptFailureMessage(
+    'Video has no caption tracks.',
+    'The transcript panel is not open.',
+  );
+  const [headline, ...rest] = msg.split('\n');
+
+  assert.equal(headline, 'No transcript found for this video.');
+  assert.match(msg, /Caption track: Video has no caption tracks\./);
+  assert.match(msg, /Transcript panel: The transcript panel is not open\./);
+  assert.ok(rest.length > 0, 'the details follow the headline on their own lines');
 });
