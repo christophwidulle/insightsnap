@@ -31,6 +31,52 @@ export function withFrontMatter(text: string, transcript?: TranscriptResult): st
   return `${lines.join('\n')}\n${text}`;
 }
 
+// LLMs (Gemini in particular) like to write arrows and operators as inline LaTeX math
+// ($\rightarrow$), which neither the dialog's react-markdown nor most note apps render.
+// Known symbol commands become their Unicode character; \text-style wrappers are unwrapped.
+const LATEX_SYMBOLS: Record<string, string> = {
+  to: '→',
+  rightarrow: '→',
+  longrightarrow: '→',
+  Rightarrow: '⇒',
+  leftarrow: '←',
+  Leftarrow: '⇐',
+  leftrightarrow: '↔',
+  times: '×',
+  cdot: '·',
+  pm: '±',
+  neq: '≠',
+  leq: '≤',
+  geq: '≥',
+  approx: '≈',
+  ll: '≪',
+  gg: '≫',
+  mid: '|',
+  epsilon: 'ε',
+  infty: '∞',
+};
+
+export function stripLatexMath(text: string): string {
+  // Only spans containing a backslash command are math; "$7k auf $45k" is currency.
+  return text.replace(/\$([^$\n]*\\[^$\n]*)\$/g, (span, inner: string) => {
+    // Unwrap innermost-out so nested wrappers like \mathbf{Live\text{-}Streamer} resolve.
+    let unwrapped = inner;
+    for (let prev = ''; prev !== unwrapped; ) {
+      prev = unwrapped;
+      unwrapped = unwrapped.replace(
+        /\\(?:textbf|textit|text|mathbf|mathrm|mathit)\{([^{}]*)\}/g,
+        '$1',
+      );
+    }
+    const converted = unwrapped
+      .replace(/\\%/g, '%')
+      .replace(/\\([a-zA-Z]+)/g, (cmd, name: string) => LATEX_SYMBOLS[name] ?? cmd);
+    // An unresolved command means real math ($\sum_{i=1}^{n}$) — better left alone.
+    if (converted.includes('\\')) return span;
+    return converted.replace(/\s+/g, ' ').trim();
+  });
+}
+
 // Windows rejects <>:"/\|?* and control characters in file names, macOS chokes on ':'.
 // Keep the title readable, strip everything a file system could argue about.
 const ILLEGAL = /[\p{Cc}"*/:<>?\\|]/gu;

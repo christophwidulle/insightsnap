@@ -1,5 +1,11 @@
 export type LLMProvider = 'anthropic' | 'openai' | 'gemini' | 'bedrock' | 'openai-compatible';
 
+export interface PromptPreset {
+  id: string;
+  title: string;
+  text: string;
+}
+
 export interface Settings {
   provider: LLMProvider;
   model: string;
@@ -8,7 +14,7 @@ export interface Settings {
   baseUrl: string;
   /** Only for 'bedrock'. */
   region: string;
-  prompt: string;
+  prompts: PromptPreset[];
 }
 
 // Regions with a Bedrock endpoint (docs.aws.amazon.com/general/latest/gr/bedrock.html),
@@ -39,7 +45,8 @@ export const BEDROCK_REGIONS = [
 
 export const DEFAULT_PROMPT =
   'Write a structured summary of this video with the key learnings and takeaways. ' +
-  'I want to get the maximum insight out of it. Reply in the language of the transcript.';
+  'I want to get the maximum insight out of it. Reply in the language of the transcript. ' +
+  'Use plain Markdown with Unicode symbols (e.g. → or ×) and never LaTeX math notation.';
 
 export const DEFAULT_MODELS: Record<LLMProvider, string> = {
   anthropic: 'claude-sonnet-4-6',
@@ -50,14 +57,37 @@ export const DEFAULT_MODELS: Record<LLMProvider, string> = {
   'openai-compatible': '',
 };
 
+export const DEFAULT_PROMPT_PRESET: PromptPreset = {
+  id: 'default',
+  title: 'Default',
+  text: DEFAULT_PROMPT,
+};
+
 export const DEFAULT_SETTINGS: Settings = {
   provider: 'anthropic',
   model: DEFAULT_MODELS.anthropic,
   apiKey: '',
   baseUrl: '',
   region: 'us-east-1',
-  prompt: DEFAULT_PROMPT,
+  prompts: [DEFAULT_PROMPT_PRESET],
 };
+
+/**
+ * Merges stored data with the defaults. Settings written before prompt presets existed
+ * carry a single `prompt` string; it becomes the only entry in `prompts`.
+ */
+export function normalizeSettings(raw: unknown): Settings {
+  const stored = (raw ?? {}) as Partial<Settings> & { prompt?: string };
+  const settings = { ...DEFAULT_SETTINGS, ...stored };
+  if (!Array.isArray(stored.prompts) || stored.prompts.length === 0) {
+    settings.prompts =
+      typeof stored.prompt === 'string' && stored.prompt.trim() !== ''
+        ? [{ ...DEFAULT_PROMPT_PRESET, text: stored.prompt }]
+        : [DEFAULT_PROMPT_PRESET];
+  }
+  delete (settings as { prompt?: string }).prompt;
+  return settings;
+}
 
 // Runaway guard, not a cost control: a 3h video is ~150k chars, which every current
 // model swallows. This only stops a 12h stream with auto-captions from being sent whole.
@@ -78,7 +108,8 @@ export interface TranscriptResult {
 }
 
 export type RuntimeMessage =
-  { type: 'LLM_REQUEST'; transcript: string; videoTitle: string } | { type: 'OPEN_OPTIONS' };
+  | { type: 'LLM_REQUEST'; transcript: string; videoTitle: string; promptId: string }
+  | { type: 'OPEN_OPTIONS' };
 
 export interface LLMResponse {
   ok: boolean;

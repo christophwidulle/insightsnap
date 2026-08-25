@@ -7,6 +7,7 @@ import {
   DEFAULT_PROMPT,
   DEFAULT_SETTINGS,
   type LLMProvider,
+  type PromptPreset,
   type Settings,
 } from '../shared/types';
 
@@ -111,8 +112,22 @@ export function Options() {
     setTimeout(() => setStatus(null), 1500);
   }
 
-  function resetPrompt() {
-    update('prompt', DEFAULT_PROMPT);
+  function updatePrompt(id: string, patch: Partial<PromptPreset>) {
+    setSettings((s) => ({
+      ...s,
+      prompts: s.prompts.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+    }));
+  }
+
+  function addPrompt() {
+    setSettings((s) => ({
+      ...s,
+      prompts: [...s.prompts, { id: crypto.randomUUID(), title: '', text: '' }],
+    }));
+  }
+
+  function removePrompt(id: string) {
+    setSettings((s) => ({ ...s, prompts: s.prompts.filter((p) => p.id !== id) }));
   }
 
   // chrome.permissions.request needs an unbroken user gesture — no await before the call.
@@ -231,17 +246,50 @@ export function Options() {
           </label>
         )}
 
-        <label>
-          <span>Prompt</span>
-          <textarea
-            rows={6}
-            value={settings.prompt}
-            onChange={(e) => update('prompt', e.target.value)}
-          />
-          <button type="button" className="link" onClick={resetPrompt}>
-            Reset to default
+        <div className="prompts">
+          <span className="prompts-title">Prompts</span>
+          <span className="hint">
+            With more than one prompt, the InsightSnap button opens a picker before analyzing.
+          </span>
+          {settings.prompts.map((p) => (
+            <div className="prompt" key={p.id}>
+              <label>
+                <span>Title</span>
+                <input
+                  type="text"
+                  value={p.title}
+                  placeholder="e.g. Detailed summary"
+                  onChange={(e) => updatePrompt(p.id, { title: e.target.value })}
+                />
+              </label>
+              <label>
+                <span>Instructions</span>
+                <textarea
+                  rows={6}
+                  value={p.text}
+                  onChange={(e) => updatePrompt(p.id, { text: e.target.value })}
+                />
+              </label>
+              <div className="prompt-actions">
+                <button
+                  type="button"
+                  className="link"
+                  onClick={() => updatePrompt(p.id, { text: DEFAULT_PROMPT })}
+                >
+                  Reset to default
+                </button>
+                {settings.prompts.length > 1 && (
+                  <button type="button" className="link" onClick={() => removePrompt(p.id)}>
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+          <button type="button" className="add-prompt" onClick={addPrompt}>
+            Add prompt
           </button>
-        </label>
+        </div>
       </section>
 
       <footer>

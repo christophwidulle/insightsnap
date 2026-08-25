@@ -1,4 +1,5 @@
 import { callLLM } from '../shared/llm';
+import { stripLatexMath } from '../shared/markdown';
 import { loadSettings } from '../shared/storage';
 import type { LLMResponse, RuntimeMessage } from '../shared/types';
 
@@ -31,8 +32,12 @@ async function handleLLM(
   message: Extract<RuntimeMessage, { type: 'LLM_REQUEST' }>,
 ): Promise<string> {
   const settings = await loadSettings();
-  const systemPrompt = settings.prompt;
+  // Fall back to the first preset when the selected one was deleted in the options
+  // between click and request.
+  const preset = settings.prompts.find((p) => p.id === message.promptId) ?? settings.prompts[0];
+  const systemPrompt = preset.text;
   const userContent =
     `Video title: ${message.videoTitle}\n\n` + `Transcript:\n"""\n${message.transcript}\n"""`;
-  return callLLM({ settings, systemPrompt, userContent });
+  // Normalized here so every consumer (dialog, clipboard, download) gets clean Markdown.
+  return stripLatexMath(await callLLM({ settings, systemPrompt, userContent }));
 }

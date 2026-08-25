@@ -1,10 +1,10 @@
-import { DEFAULT_SETTINGS, type Settings } from './types';
+import { normalizeSettings, type Settings } from './types';
 
 const KEY = 'settings';
 
 export async function loadSettings(): Promise<Settings> {
   const data = await chrome.storage.local.get(KEY);
-  return { ...DEFAULT_SETTINGS, ...(data[KEY] as Partial<Settings> | undefined) };
+  return normalizeSettings(data[KEY]);
 }
 
 export async function saveSettings(settings: Settings): Promise<void> {
@@ -17,7 +17,7 @@ export function onSettingsChanged(cb: (settings: Settings) => void): () => void 
     area: chrome.storage.AreaName,
   ) => {
     if (area === 'local' && changes[KEY]) {
-      cb({ ...DEFAULT_SETTINGS, ...(changes[KEY].newValue as Partial<Settings>) });
+      cb(normalizeSettings(changes[KEY].newValue));
     }
   };
   chrome.storage.onChanged.addListener(listener);

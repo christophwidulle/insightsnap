@@ -1,6 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { markdownFilename, withFrontMatter, withVideoLink } from '../src/shared/markdown.ts';
+import {
+  markdownFilename,
+  stripLatexMath,
+  withFrontMatter,
+  withVideoLink,
+} from '../src/shared/markdown.ts';
 import type { TranscriptResult } from '../src/shared/types.ts';
 
 function transcript(overrides: Partial<TranscriptResult> = {}): TranscriptResult {
@@ -84,4 +89,42 @@ test('markdownFilename caps the length', () => {
 test('markdownFilename falls back to the video id, then to a constant', () => {
   assert.equal(markdownFilename(transcript({ title: '  ' })), 'insightsnap-dQw4w9WgXcQ.md');
   assert.equal(markdownFilename(), 'insightsnap.md');
+});
+
+test('stripLatexMath replaces arrow commands with Unicode arrows', () => {
+  assert.equal(
+    stripLatexMath('Daten rein $\\rightarrow$ Entscheidung'),
+    'Daten rein → Entscheidung',
+  );
+  assert.equal(stripLatexMath('A $\\to$ B $\\longrightarrow$ C'), 'A → B → C');
+  assert.equal(stripLatexMath('$\\Rightarrow$'), '⇒');
+});
+
+test('stripLatexMath replaces comparison and operator commands', () => {
+  assert.equal(stripLatexMath('$\\neq$ und $\\leq$ und $\\times$'), '≠ und ≤ und ×');
+  assert.equal(stripLatexMath('Schwellenwert $\\epsilon < 5\\%$'), 'Schwellenwert ε < 5%');
+});
+
+test('stripLatexMath unwraps text wrappers inside math spans', () => {
+  assert.equal(
+    stripLatexMath('$\\text{Aktion} + \\text{Ergebnis} = \\text{Marke}$'),
+    'Aktion + Ergebnis = Marke',
+  );
+  assert.equal(stripLatexMath('$\\textbf{ABER} + \\text{[Vorteil]}$'), 'ABER + [Vorteil]');
+  assert.equal(stripLatexMath('$\\mathbf{Live\\text{-}Streamer}$'), 'Live-Streamer');
+});
+
+test('stripLatexMath leaves currency and plain dollar text untouched', () => {
+  const s = 'von $7k auf $45k–$100k, ein $3M Deal';
+  assert.equal(stripLatexMath(s), s);
+});
+
+test('stripLatexMath leaves spans with unknown commands untouched', () => {
+  const s = 'Formel $\\sum_{i=1}^{n} x_i$ bleibt';
+  assert.equal(stripLatexMath(s), s);
+});
+
+test('stripLatexMath leaves non-math markdown untouched', () => {
+  const s = '# Titel\n\n- Punkt eins\n- `code $x` block';
+  assert.equal(stripLatexMath(s), s);
 });
