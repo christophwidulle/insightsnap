@@ -171,6 +171,15 @@
   color: #ff6b6b;
 }
 
+/* pre-line keeps the per-source lines on their own rows without turning the diagnostics
+   into a monospace block. Inheriting the body colour keeps this readable in both themes. */
+.is-error .is-error-details {
+  white-space: pre-line;
+  font-size: 13px;
+  color: inherit;
+  opacity: 0.7;
+}
+
 .is-row {
   display: flex;
   gap: 8px;

@@ -35,9 +35,21 @@ export async function extractTranscript(): Promise<TranscriptResult> {
     } catch (panelErr) {
       const captionMsg = captionErr instanceof Error ? captionErr.message : String(captionErr);
       const panelMsg = panelErr instanceof Error ? panelErr.message : String(panelErr);
-      throw new Error(`No transcript available.\nCaption track: ${captionMsg}\nPanel: ${panelMsg}`);
+      throw new Error(transcriptFailureMessage(captionMsg, panelMsg));
     }
   }
+}
+
+// Both sources failed. The headline has to stand on its own — it is what the user reads in
+// the dialog — with the per-source reasons below it for anyone diagnosing the failure.
+export function transcriptFailureMessage(captionMsg: string, panelMsg: string): string {
+  return [
+    'No transcript found for this video.',
+    '',
+    'InsightSnap tried both sources:',
+    `• Caption track: ${captionMsg}`,
+    `• Transcript panel: ${panelMsg}`,
+  ].join('\n');
 }
 
 async function fromInnerTube(): Promise<TranscriptResult> {
@@ -231,11 +243,14 @@ export function decodeEntities(input: string): string {
 }
 
 function fromPanel(): TranscriptResult {
-  const segments = readPanelSegments();
+  const panel = findTranscriptPanel();
+  const segments = readPanelSegments(panel);
   if (segments.length === 0) {
     throw new Error(
-      'Transcript panel not found in the DOM. Open it via "Show transcript" and wait for the ' +
-        'segments to load, then try again.',
+      panel
+        ? 'The transcript panel is open but holds no readable segments.'
+        : 'The transcript panel is not open. Open it via "Show transcript", wait for the ' +
+            'segments to load, then try again.',
     );
   }
 
@@ -249,11 +264,31 @@ function fromPanel(): TranscriptResult {
   };
 }
 
-function readPanelSegments(): TranscriptSegment[] {
+// YouTube keeps a collapsed transcript panel in the DOM on every watch page, so mere
+// existence says nothing. Only a panel with a non-zero box is actually open and populated.
+function findTranscriptPanel(): Element | null {
+  const candidates = [
+    ...document.querySelectorAll('ytd-transcript-renderer'),
+    ...document.querySelectorAll('ytd-transcript-search-panel-renderer'),
+    ...document.querySelectorAll('[target-id*="transcript" i]'),
+    ...document.querySelectorAll('[panel-target-id*="transcript" i]'),
+  ];
+  return candidates.find((el) => el.getBoundingClientRect().height > 0) ?? null;
+}
+
+// Every lookup stays inside the open panel. Searching the document instead would pick up
+// segments YouTube leaves behind after the panel closes or after SPA navigation, which is
+// how the wrong video's transcript reaches the model without anyone noticing.
+function readPanelSegments(panel: Element | null): TranscriptSegment[] {
+  if (!panel) return [];
+
   const candidates: NodeListOf<Element>[] = [
-    document.querySelectorAll('ytd-transcript-segment-renderer'),
-    document.querySelectorAll('ytd-transcript-segment-list-renderer .segment'),
-    document.querySelectorAll('[class*="ytd-transcript-segment-renderer"]'),
+    // The view-model element is what current YouTube renders; the ytd-* renderers below
+    // are the older markup and stay as a fallback. Verified 2026-08 on a watch page.
+    panel.querySelectorAll('transcript-segment-view-model'),
+    panel.querySelectorAll('ytd-transcript-segment-renderer'),
+    panel.querySelectorAll('ytd-transcript-segment-list-renderer .segment'),
+    panel.querySelectorAll('[class*="ytd-transcript-segment-renderer"]'),
   ];
 
   for (const list of candidates) {
@@ -265,20 +300,24 @@ function readPanelSegments(): TranscriptSegment[] {
     }
   }
 
-  return extractFromGenericPanel();
+  return extractFromGenericPanel(panel);
 }
 
 function extractFromNodes(nodes: NodeListOf<Element> | Element[]): TranscriptSegment[] {
   const result: TranscriptSegment[] = [];
   nodes.forEach((node) => {
+    // A11y-labelled nodes carry the screen-reader form of the timestamp ("18 seconds"),
+    // which parses to nothing and would shadow the real one. Exclude them explicitly.
     const timestampEl =
       node.querySelector('.segment-timestamp') ??
       node.querySelector('[class*="segment-timestamp"]') ??
-      node.querySelector('div.segment-start-offset');
+      node.querySelector('div.segment-start-offset') ??
+      node.querySelector('[class*="ViewModelTimestamp"]:not([class*="A11y"])');
     const textEl =
       node.querySelector('.segment-text') ??
       node.querySelector('yt-formatted-string') ??
-      node.querySelector('[class*="segment-text"]');
+      node.querySelector('[class*="segment-text"]') ??
+      node.querySelector('[class*="ytAttributedString"]');
 
     const stamp = timestampEl?.textContent?.trim() ?? '0';
     const text = textEl?.textContent?.trim() ?? '';
@@ -287,14 +326,11 @@ function extractFromNodes(nodes: NodeListOf<Element> | Element[]): TranscriptSeg
   return result;
 }
 
-function extractFromGenericPanel(): TranscriptSegment[] {
-  const panel =
-    document.querySelector('ytd-transcript-renderer') ??
-    document.querySelector('ytd-transcript-search-panel-renderer') ??
-    document.querySelector('[target-id="engagement-panel-searchable-transcript"]') ??
-    document.querySelector('[panel-target-id*="transcript" i]');
-
-  const root = panel ?? document.body;
+// Scoped to the transcript panel on purpose. Scanning the whole document instead used to
+// match the runtimes next to the sidebar recommendations — a "12:34" whose neighbouring
+// element is the video title — so a video without a transcript silently produced a list of
+// sidebar titles rather than an error. Never widen this root beyond the panel.
+function extractFromGenericPanel(root: Element): TranscriptSegment[] {
   const stampRe = /^\d{1,2}:\d{2}(:\d{2})?$/;
   const result: TranscriptSegment[] = [];
   const seen = new Set<string>();
@@ -303,8 +339,11 @@ function extractFromGenericPanel(): TranscriptSegment[] {
     const txt = el.textContent?.trim() ?? '';
     if (!stampRe.test(txt)) return;
 
-    const sibling =
-      el.nextElementSibling ?? el.parentElement?.querySelector('yt-formatted-string') ?? null;
+    // Skip the screen-reader twin of the timestamp ("18 seconds") that sits between the
+    // stamp and the real caption text; taking it verbatim used to pass it off as transcript.
+    let sibling = el.nextElementSibling;
+    while (sibling && /A11y/i.test(classNameOf(sibling))) sibling = sibling.nextElementSibling;
+    sibling ??= el.parentElement?.querySelector('yt-formatted-string') ?? null;
     const siblingText = sibling?.textContent?.trim() ?? '';
     if (!siblingText || stampRe.test(siblingText)) return;
 
@@ -319,6 +358,11 @@ function extractFromGenericPanel(): TranscriptSegment[] {
     console.debug('[InsightSnap] panel read via generic stamp scan, segments:', result.length);
   }
   return result;
+}
+
+// SVG elements carry an SVGAnimatedString rather than a plain className.
+function classNameOf(el: Element): string {
+  return typeof el.className === 'string' ? el.className : '';
 }
 
 export function parseTimestamp(stamp: string): number {
